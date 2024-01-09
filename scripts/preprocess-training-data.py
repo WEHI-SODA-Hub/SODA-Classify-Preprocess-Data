@@ -1,0 +1,315 @@
+#!/usr/bin/env python3
+
+import pandas as pd
+import numpy as np
+
+import re
+import os
+import json
+
+def setup(output_folder, expression_mat_path):
+    os.makedirs(output_folder, exist_ok=True)
+    expression_df = pd.read_csv(expression_mat_path)
+    return expression_df
+
+def preprocess_celltypecolumn(expression_df, cell_types_to_remove = ["Unknown"], change_to = "Other"):
+    """
+    Preprocess the cell type column
+    cell types which you want to remove. By remove, the cell type will be changed to what ever you set to the variable change_to
+    """
+
+    # Check that all the cell types are there 
+    # remove the Edited prefix which may have occured from the qupath script
+    expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].str.replace("Edited: ", "")
+    expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].str.replace("Edited: ", "")
+
+    expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].str.replace("Immune cells: ", "")
+    expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].str.replace("Immune cells: ", "")
+
+    found_cell_types = sorted(expression_df.loc[:, "Class"].unique())
+    print("Cell types found:\n", found_cell_types, '\n')
+
+    expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].replace(cell_types_to_remove, change_to)
+    expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].replace(cell_types_to_remove, change_to)
+
+    cell_types = expression_df.loc[:, "Class"].unique()
+    cell_types = sorted(cell_types)
+
+    print("Cell types after removing user-defined cells:\n", cell_types, '\n')
+
+    return cell_types
+
+def create_encoder_decoder(cell_types, output_folder, batch_name):
+
+    # encoder for converting your labels
+    encoder = {cell_types[i]:i for i in range(len(cell_types))}
+
+    # decoder for decoding the results of the model. Save somewhere safe. 
+    decoder = {i:cell_types[i] for i in range(len(cell_types))}
+
+    with open(os.path.join(output_folder, f"{batch_name}_decoder.json"), "w") as json_file:
+        json.dump(decoder, json_file, indent=4)
+
+    return encoder, decoder
+
+def save_encoded_labels(expression_df, encoder, output_folder, batch_name):
+    """
+    Save the labels as a separate csv file. The labels will be encoded with the above encoding
+    """
+
+    filename = os.path.join(output_folder, "{}_cell_type_labels.csv".format(batch_name))
+    labels = expression_df.loc[:, ["Name"]]
+    labels = labels.replace({"Name" : encoder})
+    labels.to_csv(filename, index=False)
+
+def convert_pixels_to_micrometre(expression_df, pixel_size = 0.3906):
+    """
+    If for some reason, the centroid measurements are done in pixels and not µm, this will convert the pixel values to microns. 
+
+    The pixel_size variable is the microns/pixel. This information should be available somewhere idk. 
+    """
+
+    pixel_size = 0.3906 # fixed size (for now)
+
+    for dim in ["X", "Y"]:
+        try:
+            null_arr = expression_df.loc[:, "Centroid {} µm".format(dim)].isnull()
+            if null_arr.any() != False:
+                expression_df.loc[null_arr.values, "Centroid {} µm".format(dim)] = expression_df.loc[null_arr.values, "Centroid {} px".format(dim)] * pixel_size
+                expression_df.drop(["Centroid {} px".format(dim)], axis=1)
+        except:
+            expression_df.loc[:, "Centroid {} µm".format(dim)] = expression_df.loc[:, "Centroid {} px".format(dim)] * pixel_size
+            expression_df = expression_df.drop(["Centroid {} px".format(dim)], axis=1)
+
+def save_image_coordinate_columns(expression_df, additional_meta_data, output_folder, batch_name):
+    """
+    Save the image and coordinate columns. This is for when we want to import the results back into qupath
+    """
+
+    image_coord_cols = ["Image", "Centroid X µm", "Centroid Y µm"] + additional_meta_data
+    image_coord_df = expression_df.loc[:, image_coord_cols]
+    image_coord_file_name = os.path.join(output_folder, "{}_images.csv".format(batch_name))
+    image_coord_df.to_csv(image_coord_file_name, index=False)
+
+def remove_prefixes_underscores(expression_df):
+    """
+    Remove unnecessary prefixes and underscores. 
+    """
+    expression_df.columns = expression_df.columns.str.replace("Target:", "")
+    expression_df.columns = expression_df.columns.str.replace("_", " ")
+
+def collect_markers(expression_df):
+    """
+    Collects all of the markers in this cohort
+    """
+    # markers to include
+    markers = [col.replace(": Cell: Mean", "") for col in expression_df.columns if "Cell: Mean" in col]
+    return markers
+
+def drop_markers(expression_df, markers, excluded_markers):
+    """
+    In this step, markers which do not help in determining the cell type should be removed. For example, dsDNA will not help in determining
+    cell types. 
+
+    Any markers where the staining did not work should also be removed.
+    Keep only the columns with the markers you want to keep.
+    """
+    # return [marker for marker in markers if marker not in excluded_markers]
+    markers_ = [s + ": " for s  in markers if s not in excluded_markers]
+    measurement_columns = [col for col in expression_df.columns if any(map(col.__contains__, markers_))]
+    return expression_df.loc[:, measurement_columns]
+
+def replace_cytoplasm_with_membrane(expression_df):
+    """
+    Due to the segmentation, some cells will not have a cytoplasm compartment. That is because the nuclei boundary and the cell boundary
+    are the same pixels. This usually occurs in densely packed tumours where the nuclei and cell boundary merge. 
+
+    Because of this, some cells will have missing values in the cell cytoplasm measurements. We will therefore, instead of imputing the
+    missing values with a 0, we will use the membrane measurement. This is a more representative way to impute the missing measurements. 
+    """
+    
+    for col in expression_df.columns:
+        null_arr = expression_df.loc[:, col].isnull()
+        if null_arr.values.any():
+            if "Cytoplasm" in col: 
+                new_col = col.replace("Cytoplasm", "Membrane", 1)
+                expression_df.loc[null_arr.values, col] = expression_df.loc[null_arr.values, new_col]
+
+    return expression_df
+
+def use_cell_measurement(expression_df):
+    """
+    Due to the segmentation, some cells will not have a nucleus area too small.
+
+    Because of this, some cells will have missing values in the nucleus measurements. We will therefore, instead of imputing the
+    missing values with a 0, we will use the cell measurement. This is a more representative way to impute the missing measurements. 
+    """
+
+    for col in expression_df.columns:
+        null_arr = expression_df.loc[:, col].isnull()
+        if null_arr.values.any():
+            if "Nucleus" in col: 
+                new_col = col.replace("Nucleus", "Cell", 1)
+                expression_df.loc[null_arr.values, col] = expression_df.loc[null_arr.values, new_col]
+
+    return expression_df
+
+def remove_unwanted_compartments(expression_df, unwanted_compartments):
+    """
+    If you believe that some compartments should not be considered during the phenotyping, remove them here
+    """
+
+    compartments_cols_to_remove = [col for col in expression_df.columns if any(map(col.__contains__, unwanted_compartments))]
+    expression_df = expression_df.drop(columns=compartments_cols_to_remove)
+
+    return expression_df
+
+def remove_statistics(expression_df, unwanted_stats):
+    """
+    If you believe that some statistics should not be considered during the phenotyping, remove them here
+    """
+    statistics_cols_to_remove = [col for col in expression_df.columns if any(map(col.__contains__, unwanted_stats))]
+    expression_df = expression_df.drop(columns=statistics_cols_to_remove)
+
+    return expression_df
+
+def save_preprocessed_data(expression_df, output_folder, batch_name):
+    """
+    Save the input preprocessed data
+    """
+    output_expression_df_path = os.path.join(output_folder,  "{}_preprocessed_input_data.csv".format(batch_name))
+    expression_df.to_csv(output_expression_df_path, index=False)
+
+def preprocess_training_data(batch_name, output_folder, expression_mat_path, cell_types_to_remove, change_to, additional_meta_data_to_keep, unwanted_markers, unwanted_compartments, unwanted_statistics):
+
+    expression_df = setup(output_folder, expression_mat_path)
+
+    cell_types = preprocess_celltypecolumn(expression_df, cell_types_to_remove, change_to)
+
+    encoder, decoder = create_encoder_decoder(cell_types, output_folder, batch_name)
+
+    print("Encoding:\n", encoder, '\n')
+
+    save_encoded_labels(expression_df, encoder, output_folder, batch_name)
+
+    convert_pixels_to_micrometre(expression_df)
+
+    save_image_coordinate_columns(expression_df, additional_meta_data_to_keep, output_folder, batch_name)
+
+    print("Count of each cell type:\n", expression_df.loc[:, "Class"].value_counts(), '\n')
+
+    remove_prefixes_underscores(expression_df)
+
+    markers = collect_markers(expression_df)
+
+    print("Markers found:\n", markers, "\n")
+    print("User-defined markers to remove:\n", unwanted_markers, '\n')
+
+    expression_df = drop_markers(expression_df, markers, unwanted_markers)
+
+    expression_df = replace_cytoplasm_with_membrane(expression_df)
+
+    expression_df = use_cell_measurement(expression_df)
+
+    expression_df = remove_unwanted_compartments(expression_df, unwanted_compartments)
+
+    expression_df = remove_statistics(expression_df, unwanted_statistics)
+    print("Columns with NA values:\n", expression_df.columns[expression_df.isna().any()].values, '\n')
+
+    print(
+    """Check which columns still have NA values. This will be an issue with the measurement names across different images, and cohorts. 
+If the problem is due to different measurement names across different images, this can be fixed by changing the names for the columns
+in the images where this is a problem. 
+
+Some things to check:
+* Do all of my images have the same channel names on QuPath?
+* Did I change the channel names before or after the segmentation? 
+    * If after, the measurements would have been created using the previous channel names.
+    * You can either change the names of the columns (best option) or if the channel names were
+    completely different and you don't know which corresponds to which, you should re run the segmentation
+    using the new channel names. 
+""")
+
+    save_preprocessed_data(expression_df, output_folder, batch_name)
+
+if __name__ == "__main__":
+
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        prog = "MIBI-preprocess-data",
+        description = """This script is for preprocessing annotated data which has been exported from QuPath.
+The data will be exported for XGBoost training or any supervised machine learning method of choice."""
+    )
+
+    # declare input arguments.
+    parser.add_argument("-n", "--batch-name", required=True, help="Batch name used to label output files.")
+    parser.add_argument("-o", "--output-folder", default="output", help="Where preprocessed files will be stored. The folder will be created if it doesn't already exist.")
+    parser.add_argument("-d", "--qupath-data", required=True, help="The raw data exported from QuPath to be preprocessed.")
+    parser.add_argument("-a", "--additional-metadata-to-keep", help="A comma-delimited list of additional metadata columns you wish to keep.")
+    parser.add_argument("-l", "--unwanted-celltypes", help="A comma-delimited list of cell types identified that you wish to remove. E.g., \"B cells,CD4 T cells\".")
+    parser.add_argument("-t", "--change-unwanted-celltypes-to", default="Other", help="The label assigned to celltypes that you have flagged for removal. Default: Other.")
+    parser.add_argument("-m", "--unwanted-markers", help="A comma-delimited list of markers you want to remove from the phenotyping.")
+    parser.add_argument("-c", "--unwanted-compartments", help="A comma-delimited list of compartments you want to remove from the phenotyping.")
+    parser.add_argument("-s", "--unwanted-statistics", default=" Nucleus: Mean, Nucleus: Median, Nucleus: Min, Nucleus: Max, Nucleus: Std.Dev, Nucleus: Percentile: 91.0, Nucleus: Percentile: 92.0, Nucleus: Percentile: 93.0, Nucleus: Percentile: 94.0, Nucleus: Percentile: 96.0,Nucleus: Percentile: 97.0, Nucleus: Percentile: 98.0, Nucleus: Percentile: 99.0, Nucleus: Percentile: 99.5, Nucleus: Percentile: 99.9, Nucleus: Percentile: 95.0, Nucleus: Percentile: 90.0, Nucleus: Percentile: 80.0, Nucleus: Percentile: 70.0", help="A comma-delimited list of statistics you want to remove from the phenotyping.")
+
+    args = parser.parse_args()
+
+    # assign args to variables
+    batch_name = args.batch_name
+    output_folder = args.output_folder
+    expression_mat_path = args.qupath_data
+    change_to = args.change_unwanted_celltypes_to
+
+    # might be None.
+    try:
+        cell_types_to_remove = args.unwanted_celltypes.split(',')
+    except:
+        cell_types_to_remove = []
+
+    # might be None
+    try:
+        additional_meta_data_to_keep = args.additional_metadata_to_keep.split(',')
+    except:
+        additional_meta_data_to_keep = []
+
+    # might be None
+    try:
+        unwanted_markers = args.unwanted_markers.split(',')
+    except:
+        unwanted_markers = []
+    
+    # might be None
+    try:
+        unwanted_compartments = args.unwanted_compartments.split(',')
+    except:
+        unwanted_compartments = []
+    
+    # might be None
+    try:
+        unwanted_statistics = args.unwanted_statistics.split(',')
+    except:
+        unwanted_statistics = []
+
+    print("------------------ Input summary -----------------")
+    print("Batch name:                     ", batch_name)
+    print("Output folder:                  ", output_folder)
+    print("QuPath data to be preprocessed: ", expression_mat_path)
+    print("Unwanted cell types:            ", cell_types_to_remove)
+    print("Changing unwanted cell types to:", change_to)
+    print("Additional metadata to keep:    ", additional_meta_data_to_keep)
+    print("Unwanted makers:                ", unwanted_markers)
+    print("Unwanted compartments:          ", unwanted_compartments)
+    print("Unwanted statistics:            ", unwanted_statistics)
+    print()
+    print("---------- Starting preprocessing ... -----------")
+
+    preprocess_training_data(batch_name, 
+                             output_folder, 
+                             expression_mat_path, 
+                             cell_types_to_remove, 
+                             change_to, 
+                             additional_meta_data_to_keep, 
+                             unwanted_markers, 
+                             unwanted_compartments, 
+                             unwanted_statistics)
