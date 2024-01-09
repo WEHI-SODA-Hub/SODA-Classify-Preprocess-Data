@@ -7,8 +7,8 @@ nextflow.enable.dsl=2
 process processTwo {
 	cpus "${params.cpus}"
 	debug = true //turn to false to stop printing command stdout to screen
-	container "${params.ubuntu_container}"
-	publishDir "${params.outDir}/process2", mode: 'copy'
+	container "${params.container}"
+	publishDir "${params.output_folder}/process2", mode: 'copy'
 
 	// See: https://www.nextflow.io/docs/latest/process.html#inputs
 	// each input needs to be placed on a new line

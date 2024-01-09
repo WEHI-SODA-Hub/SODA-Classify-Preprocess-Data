@@ -1,74 +1,71 @@
 #!/usr/bin/env nextflow
 
-/// To use DSL-2 will need to include this
 nextflow.enable.dsl=2
 
-// =================================================================
-// main.nf is the pipeline script for a nextflow pipeline
-// Should contain the following sections:
-	// Import subworkflows
-	// Log info function
-	// Help function 
-	// Main workflow structure
-	// Some tests to check input data, essential arguments
-
-// Examples are included for each section. Remove them and replace
-// with project-specific code. For more information on nextflow see:
-// https://www.nextflow.io/docs/latest/index.html and the SIH Nextflow
-// upskilling repo @ INSERT REPO PATH 
-//
-// ===================================================================
-
 // Import subworkflows to be run in the workflow
-// Each of these is a separate .nf script saved in modules/
-// Add as many of these as you need. The example below will
-// look for the process called process in modules/moduleName.nf
-// Include { process } from './modules/moduleName'
 include { processOne } from './modules/process1'
 include { processTwo } from './modules/process2'
 
-/// Print a header for your pipeline 
+/// Print a header
 log.info """\
 
 =======================================================================================
-Name of the pipeline - nf 
+MIBI-preprocess - nf 
 =======================================================================================
 
-Created by the Sydney Informatics Hub, University of Sydney
+Research Computing Platform, WEHI
 
-Find documentation and more info @ GITHUB REPO DOT COM
+Find documentation and more info @ https://github.com/BioimageAnalysisCoreWEHI/MIBI-preprocess-data
 
 Cite this pipeline @ INSERT DOI
 
-Log issues @ GITHUB REPO DOT COM
+Log issues @ https://github.com/BioimageAnalysisCoreWEHI/MIBI-preprocess-data/issues
 
 =======================================================================================
 Workflow run parameters 
 =======================================================================================
-input       : ${params.input}
-outDir      : ${params.outDir}
-workDir     : ${workflow.workDir}
+batch_name            : ${params.batch_name}
+output_folder         : ${params.output_folder}
+qupath_data           : ${params.qupath_data}
+additional_meta_data  : ${params.additional_meta_data}
+cell_types_to_remove  : ${params.cell_types_to_remove}
+change_to             : ${params.change_to}
+unwanted_markers      : ${params.unwanted_markers}
+unwanted_compartments : ${params.unwanted_compartments}
+unwanted_statistics   : ${params.unwanted_statistics}
+workDir               : ${workflow.workDir}
 =======================================================================================
 
 """
 
-/// Help function 
-// This is an example of how to set out the help function that 
-// will be run if run command is incorrect (if set in workflow) 
-// or missing/  
-
+// Help function
 def helpMessage() {
     log.info"""
-  Usage:  nextflow run main.nf --input <samples.tsv> 
+  Usage:  nextflow run main.nf
 
   Required Arguments:
 
-  --input	Specify full path and name of sample
-		input file (tab separated).
+  --batch_name BATCH_NAME
+        Batch name used to label output files.
+  --output_folder OUTPUT_FOLDER
+        Where preprocessed files will be stored. The folder will be created if it doesn't already exist.
+  --qupath_data QUPATH_DATA
+        The raw data exported from QuPath to be preprocessed.
 
   Optional Arguments:
 
-  --outDir	Specify path to output directory. 
+  --additional-metadata-to-keep ADDITIONAL_METADATA_TO_KEEP
+        A comma-delimited list of additional metadata columns you wish to keep.
+  --unwanted_celltypes UNWANTED_CELLTYPES
+        A comma-delimited list of cell types identified that you wish to remove. E.g., "B cells,CD4 T cells".
+  --chang_to CHANGE_UNWANTED_CELLTYPES_TO
+        The label assigned to celltypes that you have flagged for removal. Default: Other.
+  --unwanted_markers UNWANTED_MARKERS
+        A comma-delimited list of markers you want to remove from the phenotyping.
+  --unwanted_compartments UNWANTED_COMPARTMENTS
+        A comma-delimited list of compartments you want to remove from the phenotyping.
+  --unwanted_statistics UNWANTED_STATISTICS
+        A comma-delimited list of statistics you want to remove from the phenotyping.
 	
 """.stripIndent()
 }
@@ -77,30 +74,29 @@ def helpMessage() {
 // Make sure to comment what each step does for readability. 
 
 workflow {
-// Show help message if --help is run or if any required params are not 
-// provided at runtime
 
-if ( params.help || params.input == false ){   
-// Invoke the help function above and exit
-	helpMessage()
-	exit 1
-	// consider adding some extra contigencies here.
-	// could validate path of all input files in list?
-	// could validate indexes for input files exist?
-	// could validate indexes for reference exist?
+	// Show help message if --help is run or if any required params are not  provided at runtime
+	if ( params.help || params.batch_name == "" || params.output_folder == "" || params.qupath_data == ""){   
+	// Invoke the help function above and exit
+		helpMessage()
+		exit 1
+		// consider adding some extra contigencies here.
+		// could validate path of all input files in list?
+		// could validate indexes for input files exist?
+		// could validate indexes for reference exist?
 
-// if none of the above are a problem, then run the workflow
-} else {
-	
-	// Define input channels 
-	input = Channel.fromPath("${params.input}")
+	// if none of the above are a problem, then run the workflow
+	} else {
+		
+		// Define input channels 
 
-	// Run process 1 example
-	processOne(params.input)
-	
-	// process 2 example 
-	processTwo(processOne.out.File)
-}}
+		// Run process 1 example
+		processOne(params.qupath_data)
+		
+		// process 2 example 
+		processTwo(processOne.out.File)
+	}
+}
 
 workflow.onComplete {
 summary = """
@@ -112,7 +108,7 @@ Duration    : ${workflow.duration}
 Success     : ${workflow.success}
 workDir     : ${workflow.workDir}
 Exit status : ${workflow.exitStatus}
-outDir      : ${params.outDir}
+outDir      : ${params.output_folder}
 
 =======================================================================================
   """
