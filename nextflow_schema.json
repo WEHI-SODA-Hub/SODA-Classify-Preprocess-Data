@@ -42,7 +42,7 @@
       "type": "string",
       "description": "Where preprocessed files will be stored. The folder will be created if it doesn't already exist."
     },
-    "input_data": {
+    "qupath_data": {
       "type": "string",
       "description": "The raw data exported from QuPath to be preprocessed."
     },
@@ -87,5 +87,5 @@
       "hidden": true
     }
   },
-  "required": ["batch_name", "output_folder", "input_data"]
+  "required": ["batch_name", "output_folder", "qupath_data"]
 }
