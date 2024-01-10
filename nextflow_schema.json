@@ -71,9 +71,13 @@
       "type": "string",
       "description": "A comma-delimited list of statistics you want to remove from the phenotyping."
     },
+    "memory": {
+      "type": "string",
+      "description": "The RAM to allocate for the preprocessing. Include units e.g. 2 GB."
+    },
     "preprocess_script": {
       "type": "string",
-      "default": "/Users/yang.e/mibi-preprocess-data/scripts/preprocess-training-data.py",
+      "default": "$projectDir/mibi-preprocess-data/scripts/preprocess-training-data.py",
       "description": "That path where the preprocess script is located."
     },
     "cpus": {

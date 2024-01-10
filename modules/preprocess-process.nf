@@ -1,4 +1,4 @@
-#!/bin/env nextflow 
+	#!/bin/env nextflow 
 
 // Enable DSL-2 syntax
 nextflow.enable.dsl=2
@@ -9,6 +9,7 @@ process PREPROCESS {
 	container "${params.container}"
 	publishDir "${params.output_folder}", mode: 'copy'
 	conda "python:pandas=1.4.4"
+	memory "${params.memory}"
 
 	// See: https://www.nextflow.io/docs/latest/process.html#inputs
 	// each input needs to be placed on a new line
@@ -31,7 +32,7 @@ process PREPROCESS {
 	if (params.change_to == "") { flag_t = "" } else { flag_t = "-t '${params.change_to}'" }
 	if (params.unwanted_markers == "") { flag_m = "" } else { flag_m = "-m '${params.unwanted_markers}'" }
 	if (params.unwanted_compartments == "") { flag_c = "" } else { flag_c = "-c '${params.unwanted_compartments}'" }
-	if (params.unwanted_statistics == "") { flag_s = "" } else { flag_s = "-c '${params.unwanted_statistics}'" }
+	if (params.unwanted_statistics == "") { flag_s = "" } else { flag_s = "-s '${params.unwanted_statistics}'" }
 	'''
 	python3 !{params.preprocess_script} \\
 		-d "!{qupath_data}" \\

@@ -34,6 +34,7 @@ unwanted_compartments : ${params.unwanted_compartments}
 unwanted_statistics   : ${params.unwanted_statistics}
 preprocess_script     : ${params.preprocess_script}
 workDir               : ${workflow.workDir}
+RAM                   : ${params.memory}
 =======================================================================================
 
 """
@@ -66,6 +67,8 @@ def helpMessage() {
         A comma-delimited list of compartments you want to remove from the phenotyping.
   --unwanted_statistics UNWANTED_STATISTICS
         A comma-delimited list of statistics you want to remove from the phenotyping.
+  --memory
+        The RAM to allocate for the preprocessing. 
 	
 """.stripIndent()
 }
