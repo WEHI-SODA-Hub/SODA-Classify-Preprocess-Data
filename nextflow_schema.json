@@ -40,11 +40,14 @@
     },
     "output_folder": {
       "type": "string",
+      "format": "directory-path",
       "description": "Where preprocessed files will be stored. The folder will be created if it doesn't already exist."
     },
     "qupath_data": {
       "type": "string",
-      "description": "The raw data exported from QuPath to be preprocessed."
+      "format": "file-path",
+      "description": "The raw data exported from QuPath to be preprocessed.",
+      "exists": true
     },
     "cell_types_to_remove": {
       "type": "string",
@@ -69,16 +72,13 @@
     },
     "unwanted_statistics": {
       "type": "string",
+      "default": " Nucleus: Mean, Nucleus: Median, Nucleus: Min, Nucleus: Max, Nucleus: Std.Dev, Nucleus: Percentile: 91.0, Nucleus: Percentile: 92.0, Nucleus: Percentile: 93.0, Nucleus: Percentile: 94.0, Nucleus: Percentile: 96.0,Nucleus: Percentile: 97.0, Nucleus: Percentile: 98.0, Nucleus: Percentile: 99.0, Nucleus: Percentile: 99.5,  Nucleus: Percentile: 99.9, Nucleus: Percentile: 95.0, Nucleus: Percentile: 90.0, Nucleus: Percentile: 80.0, Nucleus: Percentile: 70.0",
       "description": "A comma-delimited list of statistics you want to remove from the phenotyping."
     },
     "memory": {
       "type": "string",
+      "default": "2 GB",
       "description": "The RAM to allocate for the preprocessing. Include units e.g. 2 GB."
-    },
-    "preprocess_script": {
-      "type": "string",
-      "default": "$projectDir/mibi-preprocess-data/scripts/preprocess-training-data.py",
-      "description": "That path where the preprocess script is located."
     },
     "cpus": {
       "type": "integer",
