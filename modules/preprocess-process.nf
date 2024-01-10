@@ -34,7 +34,7 @@ process PREPROCESS {
 	if (params.unwanted_compartments == "") { flag_c = "" } else { flag_c = "-c '${params.unwanted_compartments}'" }
 	if (params.unwanted_statistics == "") { flag_s = "" } else { flag_s = "-s '${params.unwanted_statistics}'" }
 	'''
-	python3 !{params.preprocess_script} \\
+	python3 "!{projectDir}/scripts/preprocess-training-data.py" \\
 		-d "!{qupath_data}" \\
 		-o . \\
 		-n "!{params.batch_name}" \\
