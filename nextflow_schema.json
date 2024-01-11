@@ -87,7 +87,7 @@
     },
     "before_script": {
       "type": "string",
-      "default": "module load minconda3",
+      "default": "module load miniconda3",
       "hidden": true
     }
   },
