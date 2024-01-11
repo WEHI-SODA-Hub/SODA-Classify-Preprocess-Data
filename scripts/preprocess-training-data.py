@@ -2,10 +2,32 @@
 
 import pandas as pd
 import numpy as np
+import tabulate
 
 import re
 import os
 import json
+
+def print_1d_list_as_md_table(input_list, columns=3):
+    """
+    Convert a 1D list to a 2D list with the specified number of columns.
+
+    :param input_list: The 1D list to be converted.
+    :param columns: The number of columns in the resulting 2D list.
+    :return: A 2D list where each inner list represents a row.
+    """
+
+    # could've used if input_list, but input_list might be a pandas series
+    if len(input_list) > 0:
+
+        list2 = [input_list[i:i + columns] for i in range(0, len(input_list), columns)]
+
+        print(tabulate.tabulate(list2))
+        print()
+
+    else:
+
+        print(None, "\n")
 
 def setup(output_folder, expression_mat_path):
     os.makedirs(output_folder, exist_ok=True)
@@ -27,7 +49,8 @@ def preprocess_celltypecolumn(expression_df, cell_types_to_remove = ["Unknown"],
     expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].str.replace("Immune cells: ", "")
 
     found_cell_types = sorted(expression_df.loc[:, "Class"].unique())
-    print("Cell types found:\n", found_cell_types, '\n')
+    print("## Cell types found:\n")
+    print_1d_list_as_md_table(found_cell_types)
 
     expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].replace(cell_types_to_remove, change_to)
     expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].replace(cell_types_to_remove, change_to)
@@ -35,7 +58,8 @@ def preprocess_celltypecolumn(expression_df, cell_types_to_remove = ["Unknown"],
     cell_types = expression_df.loc[:, "Class"].unique()
     cell_types = sorted(cell_types)
 
-    print("Cell types after removing user-defined cells:\n", cell_types, '\n')
+    print("## Cell types after removing user-defined cells:\n")
+    print_1d_list_as_md_table(cell_types)
 
     return cell_types
 
@@ -188,7 +212,8 @@ def preprocess_training_data(batch_name, output_folder, expression_mat_path, cel
 
     encoder, decoder = create_encoder_decoder(cell_types, output_folder, batch_name)
 
-    print("Encoding:\n", encoder, '\n')
+    print("## Encoding:\n")
+    print(tabulate.tabulate([[k] for k in encoder.keys()], showindex="always"), '\n')
 
     save_encoded_labels(expression_df, encoder, output_folder, batch_name)
 
@@ -196,14 +221,17 @@ def preprocess_training_data(batch_name, output_folder, expression_mat_path, cel
 
     save_image_coordinate_columns(expression_df, additional_meta_data_to_keep, output_folder, batch_name)
 
-    print("Count of each cell type:\n", expression_df.loc[:, "Class"].value_counts(), '\n')
+    print("## Count of each cell type:\n")
+    print(expression_df.loc[:, "Class"].value_counts().to_markdown(tablefmt="simple"), '\n')
 
     remove_prefixes_underscores(expression_df)
 
     markers = collect_markers(expression_df)
 
-    print("Markers found:\n", markers, "\n")
-    print("User-defined markers to remove:\n", unwanted_markers, '\n')
+    print("## Markers found:\n")
+    print_1d_list_as_md_table(markers)
+    print("## User-defined markers to remove:\n")
+    print_1d_list_as_md_table(unwanted_markers)
 
     expression_df = drop_markers(expression_df, markers, unwanted_markers)
 
@@ -214,14 +242,18 @@ def preprocess_training_data(batch_name, output_folder, expression_mat_path, cel
     expression_df = remove_unwanted_compartments(expression_df, unwanted_compartments)
 
     expression_df = remove_statistics(expression_df, unwanted_statistics)
-    print("Columns with NA values:\n", expression_df.columns[expression_df.isna().any()].values, '\n')
+    print("## Columns with NA values:\n")
+    print_1d_list_as_md_table(expression_df.columns[expression_df.isna().any()].values, 2)
 
     print(
-    """Check which columns still have NA values. This will be an issue with the measurement names across different images, and cohorts. 
+    """## If there are columns with NA values:
+
+This will be an issue with the measurement names across different images, and cohorts. 
 If the problem is due to different measurement names across different images, this can be fixed by changing the names for the columns
 in the images where this is a problem. 
 
 Some things to check:
+
 * Do all of my images have the same channel names on QuPath?
 * Did I change the channel names before or after the segmentation? 
     * If after, the measurements would have been created using the previous channel names.
@@ -291,18 +323,27 @@ The data will be exported for XGBoost training or any supervised machine learnin
     except:
         unwanted_statistics = []
 
-    print("------------------ Input summary -----------------")
-    print("Batch name:                     ", batch_name)
-    print("Output folder:                  ", output_folder)
-    print("QuPath data to be preprocessed: ", expression_mat_path)
-    print("Unwanted cell types:            ", cell_types_to_remove)
-    print("Changing unwanted cell types to:", change_to)
-    print("Additional metadata to keep:    ", additional_meta_data_to_keep)
-    print("Unwanted makers:                ", unwanted_markers)
-    print("Unwanted compartments:          ", unwanted_compartments)
-    print("Unwanted statistics:            ", unwanted_statistics)
+    print("# ------------------ Input summary -----------------")
+    print("## Batch name:\n")
+    print(batch_name, "\n")
+    print("## Output folder:\n")
+    print(f"```\n{output_folder}\n```\n")
+    print("## QuPath data to be preprocessed:\n") 
+    print(f"```\n{expression_mat_path}\n```\n")
+    print("## Unwanted cell types:\n") 
+    print_1d_list_as_md_table(cell_types_to_remove)
+    print("## Changing unwanted cell types to:\n") 
+    print(change_to, "\n")
+    print("## Additional metadata to keep:\n") 
+    print_1d_list_as_md_table(additional_meta_data_to_keep)
+    print("## Unwanted makers:\n") 
+    print_1d_list_as_md_table(unwanted_markers)
+    print("## Unwanted compartments:\n") 
+    print_1d_list_as_md_table(unwanted_compartments)
+    print("## Unwanted statistics:\n")
+    print_1d_list_as_md_table(unwanted_statistics)
+    print("# ---------- Starting preprocessing ... -----------")
     print()
-    print("---------- Starting preprocessing ... -----------")
 
     preprocess_training_data(batch_name, 
                              output_folder, 
