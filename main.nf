@@ -3,7 +3,7 @@
 nextflow.enable.dsl=2
 
 // Import subworkflows to be run in the workflow
-include { PREPROCESS } from './modules/preprocess-process'
+include { PREPROCESS } from './modules/preprocess'
 
 /// Print a header
 log.info """\
@@ -68,7 +68,7 @@ def helpMessage() {
   --unwanted_statistics UNWANTED_STATISTICS
         A comma-delimited list of statistics you want to remove from the phenotyping.
   --memory
-        The RAM to allocate for the preprocessing. 
+        The RAM to allocate for the preprocessing. Include units e.g. "2 GB"
 	
 """.stripIndent()
 }
@@ -91,7 +91,8 @@ workflow {
 	// if none of the above are a problem, then run the workflow
 	} else {
 		// Run preprocessing process
-		file = PREPROCESS(params.qupath_data)
+		(qmd, cell_type_labels, images, results, decoder) = PREPROCESS(params.qupath_data)
+            // report = RENDER(qmd)
 	}
 }
 

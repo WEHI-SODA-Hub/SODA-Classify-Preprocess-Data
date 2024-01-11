@@ -1,4 +1,4 @@
-	#!/bin/env nextflow 
+#!/bin/env nextflow 
 
 // Enable DSL-2 syntax
 nextflow.enable.dsl=2
@@ -6,9 +6,8 @@ nextflow.enable.dsl=2
 // Define the process
 process PREPROCESS {	
 	cpus "${params.cpus}"
-	container "${params.container}"
 	publishDir "${params.output_folder}", mode: 'copy'
-	conda "python:pandas=1.4.4"
+	conda "tabulate quarto python pandas=1.4.4"
 	memory "${params.memory}"
 
 	// See: https://www.nextflow.io/docs/latest/process.html#inputs
@@ -19,7 +18,7 @@ process PREPROCESS {
 	// See: https://www.nextflow.io/docs/latest/process.html#outputs
 	// each new output needs to be placed on a new line
 	output:
-	path ("report.txt")
+	path ("report.html")
 	path ("${params.batch_name}_cell_type_labels.csv")
 	path ("${params.batch_name}_images.csv")
 	path ("${params.batch_name}_preprocessed_input_data.csv")
@@ -39,6 +38,8 @@ process PREPROCESS {
 		-o . \\
 		-n "!{params.batch_name}" \\
 		!{flag_a} !{flag_l} !{flag_t} !{flag_m} !{flag_m} !{flag_c} !{flag_s} \\
-		> report.txt
+		> report.qmd
+
+	quarto render report.qmd --to html
 	'''
 }

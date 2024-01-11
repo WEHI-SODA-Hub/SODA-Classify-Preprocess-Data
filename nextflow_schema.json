@@ -84,11 +84,6 @@
       "type": "integer",
       "default": 1,
       "hidden": true
-    },
-    "container": {
-      "type": "string",
-      "default": "quay.io/biocontainers/pandas:1.4.3",
-      "hidden": true
     }
   },
   "required": ["batch_name", "output_folder", "qupath_data"]
