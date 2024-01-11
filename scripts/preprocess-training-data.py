@@ -41,8 +41,12 @@ def preprocess_celltypecolumn(expression_df, cell_types_to_remove = ["Unknown"],
 
     found_cell_types = sorted(expression_df.loc[:, "Class"].unique())
 
-    print(f"## Cell types found:\n\n",
-        list_2_md_table(found_cell_types), "\n\n", sep="")
+    print(
+f"""## Cell types found:
+
+{list_2_md_table(found_cell_types)}
+
+""")
     
     expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].replace(cell_types_to_remove, change_to)
     expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].replace(cell_types_to_remove, change_to)
@@ -50,8 +54,12 @@ def preprocess_celltypecolumn(expression_df, cell_types_to_remove = ["Unknown"],
     cell_types = expression_df.loc[:, "Class"].unique()
     cell_types = sorted(cell_types)
 
-    print(f"## Cell types after removing user-defined cells:\n\n",
-        list_2_md_table(cell_types), "\n\n", sep="")
+    print(
+f"""## Cell types after removing user-defined cells:
+
+{list_2_md_table(cell_types)}
+
+""")
 
     return cell_types
 
@@ -204,8 +212,12 @@ def preprocess_training_data(batch_name, output_folder, expression_mat_path, cel
 
     encoder, decoder = create_encoder_decoder(cell_types, output_folder, batch_name)
 
-    print("## Encoding:\n\n",
-        tabulate.tabulate([[k] for k in encoder.keys()], showindex="always"), "\n\n", sep="")
+    print(
+f"""## Encoding:
+
+{tabulate.tabulate([[k] for k in encoder.keys()], showindex="always")}
+
+""")
 
     save_encoded_labels(expression_df, encoder, output_folder, batch_name)
 
@@ -213,17 +225,27 @@ def preprocess_training_data(batch_name, output_folder, expression_mat_path, cel
 
     save_image_coordinate_columns(expression_df, additional_meta_data_to_keep, output_folder, batch_name)
 
-    print("## Count of each cell type:\n\n",
-        expression_df.loc[:, "Class"].value_counts().to_markdown(tablefmt="simple"), "\n\n", sep="")
+    print(
+f"""## Count of each cell type:
+
+{expression_df.loc[:, "Class"].value_counts().to_markdown(tablefmt="simple")}
+        
+""")
 
     remove_prefixes_underscores(expression_df)
 
     markers = collect_markers(expression_df)
 
-    print("## Markers found:\n\n",
-        list_2_md_table(markers), "\n\n",
-        "## User-defined markers to remove:\n\n",
-        list_2_md_table(unwanted_markers), "\n\n", sep="")
+    print(
+f"""## Markers found:
+
+{list_2_md_table(markers)}
+
+## User-defined markers to remove:
+
+{list_2_md_table(unwanted_markers)}
+
+""")
 
     expression_df = drop_markers(expression_df, markers, unwanted_markers)
 
@@ -234,11 +256,14 @@ def preprocess_training_data(batch_name, output_folder, expression_mat_path, cel
     expression_df = remove_unwanted_compartments(expression_df, unwanted_compartments)
 
     expression_df = remove_statistics(expression_df, unwanted_statistics)
-    print("## Columns with NA values:\n\n",
-        list_2_md_table(expression_df.columns[expression_df.isna().any()].values, 2), "\n\n", sep="")
 
+    # print columns with NA values and instructions
     print(
-    """## If there are columns with NA values:
+f"""## Columns with NA values:
+
+{list_2_md_table(expression_df.columns[expression_df.isna().any()].values, 2)}
+
+## If there are columns with NA values:
 
 This will be an issue with the measurement names across different images, and cohorts. 
 If the problem is due to different measurement names across different images, this can be fixed by changing the names for the columns
@@ -315,26 +340,52 @@ The data will be exported for XGBoost training or any supervised machine learnin
     except:
         unwanted_statistics = []
 
-    print("# ------------------ Input summary -----------------\n\n",
-        "## Batch name:\n\n",
-        batch_name, "\n\n",
-        "## Output folder:\n\n",
-        f"```\n{output_folder}\n```\n\n",
-        "## QuPath data to be preprocessed:\n\n",
-        f"```\n{expression_mat_path}\n```\n\n",
-        "## Unwanted cell types:\n\n",
-        list_2_md_table(cell_types_to_remove), "\n\n",
-        "## Changing unwanted cell types to:\n\n",
-        change_to, "\n\n",
-        "## Additional metadata to keep:\n\n",
-        list_2_md_table(additional_meta_data_to_keep), "\n\n",
-        "## Unwanted makers:\n\n",
-        list_2_md_table(unwanted_markers), "\n\n",
-        "## Unwanted compartments:\n\n",
-        list_2_md_table(unwanted_compartments), "\n\n",
-        "## Unwanted statistics:\n\n",
-        list_2_md_table(unwanted_statistics), "\n\n",
-        "# ---------- Starting preprocessing ... -----------\n\n", sep="")
+    # print summary
+    print(
+f"""# ------------------ Input summary -----------------
+
+## Batch name:
+
+{batch_name}
+
+## Output folder:
+
+```
+{output_folder}
+```
+
+## QuPath data to be preprocessed:
+        
+```
+{expression_mat_path}
+```
+
+## Unwanted cell types:
+
+{list_2_md_table(cell_types_to_remove)}
+
+## Changing unwanted cell types to:
+
+{change_to}
+
+## Additional metadata to keep:
+
+{list_2_md_table(additional_meta_data_to_keep)}
+
+## Unwanted makers:
+
+{list_2_md_table(unwanted_markers)}
+
+## Unwanted compartments:
+
+{list_2_md_table(unwanted_compartments)}
+
+## Unwanted statistics:
+
+{list_2_md_table(unwanted_statistics)}
+
+# ---------- Starting preprocessing ... -----------
+""")
 
     preprocess_training_data(batch_name, 
                              output_folder, 
