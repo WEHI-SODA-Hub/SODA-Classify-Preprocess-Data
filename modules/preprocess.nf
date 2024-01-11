@@ -41,6 +41,6 @@ process PREPROCESS {
 		!{flag_a} !{flag_l} !{flag_t} !{flag_m} !{flag_m} !{flag_c} !{flag_s} \\
 		> report.qmd
 
-	quarto render report.qmd --to html
+	quarto render report.qmd --to pdf
 	'''
 }
