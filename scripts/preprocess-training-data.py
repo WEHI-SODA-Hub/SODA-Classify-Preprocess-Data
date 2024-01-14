@@ -264,7 +264,7 @@ f"""## Columns with NA values:
 
 {list_2_md_table(expression_df.columns[expression_df.isna().any()].values, 2)}
 
-## If there are columns with NA values:
+**If there are columns with NA values:**
 
 This will be an issue with the measurement names across different images, and cohorts. 
 If the problem is due to different measurement names across different images, this can be fixed by changing the names for the columns
@@ -384,7 +384,7 @@ format:
 
 {list_2_md_table(additional_meta_data_to_keep)}
 
-## Unwanted makers:
+## Unwanted markers:
 
 {list_2_md_table(unwanted_markers)}
 

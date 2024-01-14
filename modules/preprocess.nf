@@ -35,8 +35,8 @@ process PREPROCESS {
 	if (params.unwanted_statistics == "") { flag_s = "" } else { flag_s = "-s '${params.unwanted_statistics}'" }
 	'''
 	python3 "!{projectDir}/scripts/preprocess-training-data.py" \\
-		-d "!{qupath_data}" \\
-		-o . \\
+		-d "$(realpath !{qupath_data})" \\
+		-o "$(realpath .)" \\
 		-n "!{params.batch_name}" \\
 		!{flag_a} !{flag_l} !{flag_t} !{flag_m} !{flag_m} !{flag_c} !{flag_s} \\
 		> report.qmd
