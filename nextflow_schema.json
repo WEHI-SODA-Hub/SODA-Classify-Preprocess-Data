@@ -1,95 +1,98 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema",
-  "$id": "https://raw.githubusercontent.com/MIBI-preprocess-data/master/nextflow_schema.json",
-  "title": "MIBI-preprocess-data pipeline parameters",
-  "description": "Sub pipeline within the MIBI pipeline to preprocess output from QuPath for XGBoost model training.",
-  "type": "object",
-  "definitions": {
-    "generic_options": {
-      "title": "Generic options",
-      "type": "object",
-      "fa_icon": "fas fa-file-import",
-      "description": "Less common options for the pipeline, typically set in a config file.",
-      "help_text": "These options are common to all nf-core pipelines and allow you to customise some of the core preferences for how the pipeline runs.\n\nTypically these options would be set in a Nextflow config file loaded for all pipeline runs, such as `~/.nextflow/config`.",
-      "properties": {
-        "help": {
-          "type": "boolean",
-          "description": "Display help text.",
-          "fa_icon": "fas fa-question-circle",
-          "hidden": true
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/MIBI-preprocess-data/master/nextflow_schema.json",
+    "title": "MIBI-preprocess-data pipeline parameters",
+    "description": "Sub pipeline within the MIBI pipeline to preprocess output from QuPath for XGBoost model training.",
+    "type": "object",
+    "definitions": {
+        "input_output": {
+            "title": "Input/output",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "batch_name": {
+                    "type": "string",
+                    "description": "Batch name used to label output files."
+                },
+                "input_data": {
+                    "type": "string",
+                    "description": "The raw data exported from QuPath to be preprocessed. E.g., /stornext/Home/data/allstaff/y/yang.e/myQuPathData.csv"
+                },
+                "cell_types_to_remove": {
+                    "type": "string",
+                    "description": "A comma-delimited list of cell types identified that you wish to remove. E.g., \"B cells,CD4 T cells\"."
+                },
+                "change_to": {
+                    "type": "string",
+                    "default": "Other",
+                    "description": "The label assigned to celltypes that you have flagged for removal. Default: Other."
+                },
+                "additional_meta_data": {
+                    "type": "string",
+                    "description": "A comma-delimited list of additional metadata columns you wish to keep."
+                },
+                "unwanted_markers": {
+                    "type": "string",
+                    "description": "A comma-delimited list of markers you want to remove from the phenotyping."
+                },
+                "unwanted_compartments": {
+                    "type": "string",
+                    "description": "A comma-delimited list of compartments you want to remove from the phenotyping."
+                },
+                "unwanted_statistics": {
+                    "type": "string",
+                    "default": " Nucleus: Mean, Nucleus: Median, Nucleus: Min, Nucleus: Max, Nucleus: Std.Dev, Nucleus: Percentile: 91.0, Nucleus: Percentile: 92.0, Nucleus: Percentile: 93.0, Nucleus: Percentile: 94.0, Nucleus: Percentile: 96.0,Nucleus: Percentile: 97.0, Nucleus: Percentile: 98.0, Nucleus: Percentile: 99.0, Nucleus: Percentile: 99.5, Nucleus: Percentile: 99.9, Nucleus: Percentile: 95.0, Nucleus: Percentile: 90.0, Nucleus: Percentile: 80.0, Nucleus: Percentile: 70.0",
+                    "description": "A comma-delimited list of statistics you want to remove from the phenotyping."
+                },
+                "output_folder": {
+                    "type": "string",
+                    "description": "Where preprocessed files will be stored. The folder will be created if it doesn't already exist. E.g., /vast/scratch/users/yang.e/mibi-workspace"
+                },
+                "memory": {
+                    "type": "string",
+                    "default": "2 GB",
+                    "hidden": true,
+                    "description": "How much memory to use for preprocessing. Increase this if your jobs are killed due to Out of Memory. E.g., \"3 GB\""
+                }
+            },
+            "required": [
+                "memory",
+                "cpus",
+                "batch_name",
+                "input_data",
+                "output_folder"
+            ]
         },
-        "version": {
-          "type": "boolean",
-          "description": "Display version and exit.",
-          "fa_icon": "fas fa-question-circle",
-          "hidden": true,
-          "default": 0.1
+        "generic_options": {
+            "title": "Generic options",
+            "type": "object",
+            "fa_icon": "fas fa-file-import",
+            "description": "Less common options for the pipeline, typically set in a config file.",
+            "help_text": "These options are common to all nf-core pipelines and allow you to customise some of the core preferences for how the pipeline runs.\n\nTypically these options would be set in a Nextflow config file loaded for all pipeline runs, such as `~/.nextflow/config`.",
+            "properties": {
+                "help": {
+                    "type": "boolean",
+                    "description": "Display help text.",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true
+                },
+                "version": {
+                    "type": "boolean",
+                    "description": "Display version and exit.",
+                    "fa_icon": "fas fa-question-circle",
+                    "hidden": true,
+                    "default": 0.1
+                }
+            }
         }
-      }
-    }
-  },
-  "allOf": [
-    {
-      "$ref": "#/definitions/generic_options"
-    }
-  ],
-  "properties": {
-    "batch_name": {
-      "type": "string",
-      "description": "Batch name used to label output files."
     },
-    "output_folder": {
-      "type": "string",
-      "format": "directory-path",
-      "description": "Where preprocessed files will be stored. The folder will be created if it doesn't already exist."
-    },
-    "qupath_data": {
-      "type": "string",
-      "format": "file-path",
-      "description": "The raw data exported from QuPath to be preprocessed.",
-      "exists": true
-    },
-    "cell_types_to_remove": {
-      "type": "string",
-      "description": "A comma-delimited list of cell types identified that you wish to remove. E.g., \"B cells,CD4 T cells\"."
-    },
-    "change_to": {
-      "type": "string",
-      "default": "Other",
-      "description": "The label assigned to celltypes that you have flagged for removal. Default: Other."
-    },
-    "additional_meta_data": {
-      "type": "string",
-      "description": "A comma-delimited list of additional metadata columns you wish to keep."
-    },
-    "unwanted_markers": {
-      "type": "string",
-      "description": "A comma-delimited list of markers you want to remove from the phenotyping."
-    },
-    "unwanted_compartments": {
-      "type": "string",
-      "description": "A comma-delimited list of compartments you want to remove from the phenotyping."
-    },
-    "unwanted_statistics": {
-      "type": "string",
-      "default": " Nucleus: Mean, Nucleus: Median, Nucleus: Min, Nucleus: Max, Nucleus: Std.Dev, Nucleus: Percentile: 91.0, Nucleus: Percentile: 92.0, Nucleus: Percentile: 93.0, Nucleus: Percentile: 94.0, Nucleus: Percentile: 96.0,Nucleus: Percentile: 97.0, Nucleus: Percentile: 98.0, Nucleus: Percentile: 99.0, Nucleus: Percentile: 99.5, Nucleus: Percentile: 99.9, Nucleus: Percentile: 95.0, Nucleus: Percentile: 90.0, Nucleus: Percentile: 80.0, Nucleus: Percentile: 70.0",
-      "description": "A comma-delimited list of statistics you want to remove from the phenotyping."
-    },
-    "memory": {
-      "type": "string",
-      "default": "2 GB",
-      "description": "The RAM to allocate for the preprocessing. Include units e.g. 2 GB."
-    },
-    "cpus": {
-      "type": "integer",
-      "default": 1,
-      "hidden": true
-    },
-    "before_script": {
-      "type": "string",
-      "default": "module load miniconda3",
-      "hidden": true
-    }
-  },
-  "required": ["batch_name", "output_folder", "qupath_data"]
+    "allOf": [
+        {
+            "$ref": "#/definitions/input_output"
+        },
+        {
+            "$ref": "#/definitions/generic_options"
+        }
+    ]
 }
