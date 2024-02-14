@@ -7,7 +7,7 @@ nextflow.enable.dsl=2
 process PREPROCESS {	
 	cpus "${params.cpus}"
 	publishDir "${params.output_folder}", mode: 'copy'
-	conda "tabulate quarto python pandas=1.4.4"
+	conda "${projectDir}/envs/environment.yml"
 	memory "${params.memory}"
 	beforeScript "${params.before_script}"
 
