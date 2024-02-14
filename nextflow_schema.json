@@ -17,7 +17,7 @@
                 },
                 "input_data": {
                     "type": "string",
-                    "description": "The raw data exported from QuPath to be preprocessed. E.g., /stornext/Home/data/allstaff/y/yang.e/myQuPathData.csv"
+                    "description": "The raw data exported from QuPath to be preprocessed. E.g., /home/users/allstaff/<username>/myQuPathData.csv"
                 },
                 "cell_types_to_remove": {
                     "type": "string",
