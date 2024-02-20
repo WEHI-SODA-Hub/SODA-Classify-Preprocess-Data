@@ -121,24 +121,22 @@ def convert_pixels_to_micrometre(expression_df, pixel_size=0.3906):
 
     pixel_size = 0.3906  # fixed size (for now)
 
-    converted_df = expression_df.copy()
-
     for dim in ["X", "Y"]:
         try:
-            null_arr = converted_df.loc[:, "Centroid {} µm".format(dim)].isnull()
+            null_arr = expression_df.loc[:, "Centroid {} µm".format(dim)].isnull()
             if null_arr.any() != False:
-                converted_df.loc[null_arr.values, "Centroid {} µm".format(dim)] = (
-                    converted_df.loc[null_arr.values, "Centroid {} px".format(dim)]
+                expression_df.loc[null_arr.values, "Centroid {} µm".format(dim)] = (
+                    expression_df.loc[null_arr.values, "Centroid {} px".format(dim)]
                     * pixel_size
                 )
-                converted_df.drop(["Centroid {} px".format(dim)], axis=1)
+                expression_df.drop(["Centroid {} px".format(dim)], axis=1)
         except:
-            converted_df.loc[:, "Centroid {} µm".format(dim)] = (
-                converted_df.loc[:, "Centroid {} px".format(dim)] * pixel_size
+            expression_df.loc[:, "Centroid {} µm".format(dim)] = (
+                expression_df.loc[:, "Centroid {} px".format(dim)] * pixel_size
             )
-            converted_df = converted_df.drop(["Centroid {} px".format(dim)], axis=1)
+            expression_df = expression_df.drop(["Centroid {} px".format(dim)], axis=1)
 
-    return converted_df
+    return expression_df
 
 
 def save_image_coordinate_columns(
