@@ -165,6 +165,30 @@ def remove_prefixes_underscores(expression_df):
     expression_df.columns = expression_df.columns.str.replace("Target:", "")
     expression_df.columns = expression_df.columns.str.replace("_", " ")
 
+    return expression_df
+
+def remove_duplicate_columns(expression_df):
+    """
+    Removes duplicate columns and columns with the same name, but less data
+    """
+    # find duplicate column names
+    duplicated_cols = expression_df.columns[expression_df.columns.duplicated()]
+    # copy duplicated column data to new dataframe
+    expression_df_duplicated = expression_df[duplicated_cols]
+    # attempt to merge duplicated columns
+    ## Net effect:
+    ## * rows with same value are preserved
+    ## * rows with one empty (NaN) and another with a value takes the value
+    ## * rows with both empty stay empty
+    ## * average is taken for rows with both values present
+    expression_df_duplicated = expression_df_duplicated.groupby(
+        expression_df_duplicated.columns, axis=1
+    ).mean()
+    expression_df = expression_df.drop(columns=duplicated_cols)
+    expression_df = expression_df.join(expression_df_duplicated)
+
+    return expression_df
+
 
 def collect_markers(expression_df):
     """
@@ -318,7 +342,9 @@ def preprocess_training_data(
 """
     )
 
-    remove_prefixes_underscores(expression_df)
+    expression_df = remove_prefixes_underscores(expression_df)
+
+    expression_df = remove_duplicate_columns(expression_df)
 
     markers = collect_markers(expression_df)
 
