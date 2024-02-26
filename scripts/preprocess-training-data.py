@@ -592,31 +592,31 @@ The data will be exported for XGBoost training or any supervised machine learnin
 
     # might be None.
     try:
-        cell_types_to_remove = args.unwanted_celltypes.split(",")
+        cell_types_to_remove = [s.strip() for s in args.unwanted_celltypes.split(",")]
     except:
         cell_types_to_remove = []
 
     # might be None
     try:
-        additional_meta_data_to_keep = args.additional_metadata_to_keep.split(",")
+        additional_meta_data_to_keep = [s.strip() for s in args.additional_metadata_to_keep.split(",")]
     except:
         additional_meta_data_to_keep = []
 
     # might be None
     try:
-        unwanted_markers = args.unwanted_markers.split(",")
+        unwanted_markers = [s.strip() for s in args.unwanted_markers.split(",")]
     except:
         unwanted_markers = []
 
     # might be None
     try:
-        unwanted_compartments = args.unwanted_compartments.split(",")
+        unwanted_compartments = [s.strip() for s in args.unwanted_compartments.split(",")]
     except:
         unwanted_compartments = []
 
     # might be None
     try:
-        unwanted_statistics = args.unwanted_statistics.split(",")
+        unwanted_statistics = [s.strip() for s in args.unwanted_statistics.split(",")]
     except:
         unwanted_statistics = []
 
