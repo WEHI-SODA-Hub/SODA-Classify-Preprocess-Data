@@ -172,9 +172,9 @@ def generate_warnings(expression_df) -> str:
 
     if len(duplicated_column_names) > 0:
         warning_str += """## Duplicate Columns\n
-Columns names were tansformed by removing \"Target:\" and replacing underscores with spaces. \
-After this transformation, duplicate columns were merged. Merging involves averaging the values in the duplicated columns.\
-Duplicate columns found:
+Column names were transformed by removing \"Target:\" and replacing underscores with spaces. \
+After this transformation, duplicate columns were merged. Merging involves averaging the values in the duplicated columns. \
+Post-transformation duplicate columns found:
 
 """
         # create dataframe matching new duplicate names to original names
