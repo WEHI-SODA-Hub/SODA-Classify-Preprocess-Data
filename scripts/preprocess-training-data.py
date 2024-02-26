@@ -42,6 +42,8 @@ format:
     embed-resources: true
     theme: cosmo
     page-layout: full
+    toc: true
+    toc-location: left
 ---
 
 # Input Summary
