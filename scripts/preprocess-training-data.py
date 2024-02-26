@@ -28,7 +28,8 @@ class mibi_reporter:
             encoding_table = self.encoding_table,
             cell_type_count_table = self.cell_type_count_table,
             markers_table = self.markers_table,
-            null_columns_table = self.null_columns_table
+            null_columns_table = self.null_columns_table,
+            warnings = self.warnings
         ))
     def __init__(self):
         self.report_template_str = """
@@ -130,6 +131,10 @@ Some things to check:
     * You can either change the names of the columns (best option) or if the channel names were
     completely different and you don't know which corresponds to which, you should re run the segmentation
     using the new channel names. 
+
+# Warnings
+
+{warnings}
 """
 
 def list_2_md_table(input_list, columns=3) -> str:
@@ -152,6 +157,40 @@ def setup(output_folder, expression_mat_path):
     expression_df = pd.read_csv(expression_mat_path)
     return expression_df
 
+def generate_warnings(expression_df) -> str:
+    """
+    Checks input dataframe for known issues:
+        * Duplicate column names after removing underscores
+    """
+    warning_str = ''
+
+    # duplicate column names
+    column_names_orig = expression_df.columns
+    column_names = column_names_orig.str.replace("Target:", "")
+    column_names = column_names.str.replace('_', ' ')
+    duplicated_column_names = column_names[column_names.duplicated()]
+
+    if len(duplicated_column_names) > 0:
+        warning_str += """## Duplicate Columns\n
+Columns names were tansformed by removing \"Target:\" and replacing underscores with spaces. \
+After this transformation, duplicate columns were merged. Merging involves averaging the values in the duplicated columns.\
+Duplicate columns found:
+
+"""
+        # create dataframe matching new duplicate names to original names
+        duplicated_columns = {}
+        for name in duplicated_column_names:
+            idx = np.where(column_names == name)
+            duplicated_columns[name] = column_names_orig[idx].to_list()
+        duplicated_columns_df = pd.DataFrame(duplicated_columns).T
+
+        # label the dataframe and save table
+        duplicated_columns_df.index.name = "Duplicate Column Name"
+        colnames = [f"Original Column Name {int(i)+1}" for i in duplicated_columns_df.columns]
+        duplicated_columns_df.columns = colnames
+        warning_str += duplicated_columns_df.to_markdown(tablefmt="simple")
+
+    return warning_str
 
 def preprocess_celltypecolumn(
     expression_df, cell_types_to_remove=["Unknown"], change_to="Other"
@@ -429,6 +468,8 @@ def preprocess_training_data(
     output_mibi_reporter.unwanted_statistics_table = list_2_md_table(unwanted_statistics)
 
     expression_df = setup(output_folder, expression_mat_path)
+
+    output_mibi_reporter.warnings = generate_warnings(expression_df)
 
     cell_types, found_cell_types = preprocess_celltypecolumn(
         expression_df, cell_types_to_remove, change_to
