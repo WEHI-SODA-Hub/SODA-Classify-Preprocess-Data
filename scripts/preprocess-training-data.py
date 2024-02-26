@@ -474,7 +474,7 @@ def preprocess_training_data(
 
     output_mibi_reporter.warnings = generate_warnings(expression_df)
 
-    cell_types, found_cell_types = preprocess_celltypecolumn(
+    found_cell_types, cell_types  = preprocess_celltypecolumn(
         expression_df, cell_types_to_remove, change_to
     )
 
