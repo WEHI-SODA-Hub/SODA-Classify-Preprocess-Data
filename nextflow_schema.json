@@ -15,9 +15,19 @@
                     "type": "string",
                     "description": "Batch name used to label output files."
                 },
+                "target": {
+                    "type": "string",
+                    "description": "Whether to preprocess the data for the 'cell type' classification pipeline, or the 'functional marker' classification pipeline",
+                    "enum": [
+                        "cell-type",
+                        "functional-marker"
+                    ]
+                },
                 "input_data": {
                     "type": "string",
-                    "description": "The raw data exported from QuPath to be preprocessed. E.g., /home/users/allstaff/<username>/myQuPathData.csv"
+                    "description": "The raw data exported from QuPath to be preprocessed. E.g., /home/users/allstaff/<username>/myQuPathData.csv",
+                    "format": "file-path",
+                    "mimetype": "text/csv"
                 },
                 "cell_types_to_remove": {
                     "type": "string",
@@ -47,7 +57,8 @@
                 },
                 "output_folder": {
                     "type": "string",
-                    "description": "Where preprocessed files will be stored. The folder will be created if it doesn't already exist. E.g., /vast/scratch/users/yang.e/mibi-workspace"
+                    "description": "Where preprocessed files will be stored. The folder will be created if it doesn't already exist. E.g., /vast/scratch/users/yang.e/mibi-workspace",
+                    "format": "directory-path"
                 },
                 "memory": {
                     "type": "string",
@@ -60,6 +71,7 @@
                 "memory",
                 "cpus",
                 "batch_name",
+                "target",
                 "input_data",
                 "output_folder"
             ]

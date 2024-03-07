@@ -28,7 +28,7 @@ process PREPROCESS {
 	// each new output needs to be placed on a new line
 	output:
 	path ("report.html")
-	path ("${batch_name}_cell_type_labels.csv")
+	path ("${batch_name}_*_labels.csv")
 	path ("${batch_name}_images.csv")
 	path ("${batch_name}_preprocessed_input_data.csv")
 	path ("${batch_name}_decoder.json")
@@ -42,7 +42,7 @@ process PREPROCESS {
 	flag_c = unwanted_compartments == "" ? "" : "-c '${unwanted_compartments}'"
 	flag_s = unwanted_statistics == "" ? "" : "-s '${unwanted_statistics}'"
 	'''
-	python3 "!{preprocess_script}" \\
+	python3 "!{preprocess_script}" !{params.target} \\
 		-d "$(realpath !{qupath_data})" \\
 		-o "$(realpath .)" \\
 		-n "!{batch_name}" \\

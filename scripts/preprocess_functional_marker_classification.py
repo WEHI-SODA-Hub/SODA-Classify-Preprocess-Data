@@ -221,7 +221,7 @@ def binarize_and_save_fm(expression_df, output_folder, batch_name) -> tuple:
     # replace "+" with 1, otherwise, 0.
     binarized = binarized.map(lambda x: int("+" in x))
 
-    filename = os.path.join(output_folder, f"{batch_name}_binarized_classification.csv")
+    filename = os.path.join(output_folder, f"{batch_name}_binarized_labels.csv")
     binarized.to_csv(filename, index=False)
 
     return encoder, decoder
