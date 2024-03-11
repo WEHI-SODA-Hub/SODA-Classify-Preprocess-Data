@@ -10,11 +10,14 @@ import datetime
 
 from preprocess_cell_type_classification import (
     list_2_md_table,
+    remove_dots,
     generate_warnings,
     preprocess_celltypecolumn,
+    convert_pixels_to_micrometre,
     save_image_coordinate_columns,
     remove_prefixes_underscores,
     remove_duplicate_columns,
+    collect_markers,
     replace_cytoplasm_with_membrane,
     use_cell_measurement,
     remove_unwanted_compartments,
@@ -228,46 +231,6 @@ def one_hot_encode_cell_types(expression_df, cell_types) -> pd.DataFrame:
     return expression_df
 
 
-def convert_pixels_to_micrometre(expression_df, pixel_size=0.3906):
-    """
-    If for some reason, the centroid measurements are done in pixels and not µm, this will convert the pixel values to microns.
-
-    The pixel_size variable is the microns/pixel. This information should be available somewhere idk.
-    """
-
-    pixel_size = 0.3906  # fixed size (for now)
-
-    for dim in ["X", "Y"]:
-        try:
-            null_arr = expression_df.loc[:, "Centroid {} µm".format(dim)].isnull()
-            if null_arr.any() != False:
-                expression_df.loc[null_arr.values, "Centroid {} µm".format(dim)] = (
-                    expression_df.loc[null_arr.values, "Centroid.{}.px".format(dim)]
-                    * pixel_size
-                )
-                expression_df.drop(["Centroid.{}.px".format(dim)], axis=1)
-        except:
-            expression_df.loc[:, "Centroid {} µm".format(dim)] = (
-                expression_df.loc[:, "Centroid.{}.px".format(dim)] * pixel_size
-            )
-            expression_df = expression_df.drop(["Centroid.{}.px".format(dim)], axis=1)
-
-    return expression_df
-
-
-def collect_markers(expression_df):
-    """
-    Collects all of the markers in this cohort
-    """
-    # markers to include
-    markers = [
-        col.replace("..Cell..Mean", "")
-        for col in expression_df.columns
-        if "..Cell..Mean" in col
-    ]
-    return markers
-
-
 def drop_markers(expression_df, markers, excluded_markers, cell_types):
     """
     In this step, markers which do not help in determining the cell type should be removed. For example, dsDNA will not help in determining
@@ -277,7 +240,7 @@ def drop_markers(expression_df, markers, excluded_markers, cell_types):
     Keep only the columns with the markers you want to keep.
     """
     # return [marker for marker in markers if marker not in excluded_markers]
-    markers_ = [s + ".." for s in markers if s not in excluded_markers]
+    markers_ = [s + ": " for s in markers if s not in excluded_markers]
 
     # identify which columns contain measurements of the markers we want to keep
     measurement_columns = [
@@ -319,6 +282,8 @@ def preprocess_training_data(
     )
 
     expression_df = setup(output_folder, expression_mat_path)
+
+    expression_df = remove_dots(expression_df)
 
     output_mibi_reporter.warnings = generate_warnings(expression_df)
 
