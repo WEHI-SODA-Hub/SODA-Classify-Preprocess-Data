@@ -287,19 +287,34 @@ def convert_pixels_to_micrometre(expression_df, pixel_size=0.3906):
     pixel_size = 0.3906  # fixed size (for now)
 
     for dim in ["X", "Y"]:
-        try:
-            null_arr = expression_df.loc[:, "Centroid {} µm".format(dim)].isnull()
-            if null_arr.any() != False:
-                expression_df.loc[null_arr.values, "Centroid {} µm".format(dim)] = (
-                    expression_df.loc[null_arr.values, "Centroid {} px".format(dim)]
-                    * pixel_size
-                )
-                expression_df.drop(["Centroid {} px".format(dim)], axis=1)
-        except:
-            expression_df.loc[:, "Centroid {} µm".format(dim)] = (
-                expression_df.loc[:, "Centroid {} px".format(dim)] * pixel_size
+        # case 1: Centroid X/Y µm" column exists but so does "Centroid X/Y px". Try to merge the two
+        um_col = f"Centroid {dim} µm"
+        px_col = f"Centroid {dim} px"
+        cols = expression_df.columns
+        if um_col in cols and px_col in cols:
+            # branch 1: both um and px measurements are present.
+            # fill empty um measurements with available px measurements, then drop px measurements
+            expression_df = expression_df[um_col].fillna(
+                expression_df[px_col] * pixel_size
             )
-            expression_df = expression_df.drop(["Centroid {} px".format(dim)], axis=1)
+            expression_df.drop([px_col], axis=1)
+        elif um_col not in cols and px_col in cols:
+            # branch 2: only px measurements are present.
+            # create new um column using px measurements. Then drop px measurements
+            expression_df.loc[:, um_col] = (
+                expression_df.loc[:, px_col] * pixel_size
+            )
+            expression_df = expression_df.drop([px_col], axis=1)
+        elif um_col in cols and px_col not in cols:
+            # branch 3: only um measurements are present.
+            # do nothing
+            pass
+        else:
+            # branch 4: neither um or px measurements are present.
+            # throw error.
+            raise RuntimeError(
+                "X/Y centroid measurements (in either pixels or µm) are missing!"
+            )
 
     return expression_df
 
