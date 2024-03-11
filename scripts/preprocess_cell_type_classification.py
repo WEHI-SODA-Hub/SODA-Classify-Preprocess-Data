@@ -249,25 +249,34 @@ def preprocess_celltypecolumn(
     expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].str.replace(
         "Edited: ", ""
     )
-    expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].str.replace(
-        "Edited: ", ""
-    )
+    try:
+        expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].str.replace(
+            "Edited: ", ""
+        )
+    except KeyError:
+        pass
 
     expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].str.replace(
         "Immune cells: ", ""
     )
-    expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].str.replace(
-        "Immune cells: ", ""
-    )
+    try:
+        expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].str.replace(
+            "Immune cells: ", ""
+        )
+    except KeyError:
+        pass
 
     found_cell_types = sorted(expression_df.loc[:, "Class"].unique())
 
     expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].replace(
         cell_types_to_remove, change_to
     )
-    expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].replace(
-        cell_types_to_remove, change_to
-    )
+    try:
+        expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].replace(
+            cell_types_to_remove, change_to
+        )
+    except KeyError:
+        pass
 
     cell_types = expression_df.loc[:, "Class"].unique()
     cell_types = sorted(cell_types)

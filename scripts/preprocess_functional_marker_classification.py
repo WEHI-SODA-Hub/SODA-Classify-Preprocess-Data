@@ -11,6 +11,7 @@ import datetime
 from preprocess_cell_type_classification import (
     list_2_md_table,
     generate_warnings,
+    preprocess_celltypecolumn,
     save_image_coordinate_columns,
     remove_prefixes_underscores,
     remove_duplicate_columns,
@@ -171,36 +172,6 @@ def setup(output_folder, expression_mat_path):
     os.makedirs(output_folder, exist_ok=True)
     expression_df = pd.read_csv(expression_mat_path, index_col=0)
     return expression_df
-
-
-def preprocess_celltypecolumn(
-    expression_df, cell_types_to_remove=["Unknown"], change_to="Other"
-):
-    """
-    Preprocess the cell type column
-    cell types which you want to remove. By remove, the cell type will be changed to what ever you set to the variable change_to
-    """
-
-    # Check that all the cell types are there
-    # remove the Edited prefix which may have occured from the qupath script
-    expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].str.replace(
-        "Edited: ", ""
-    )
-
-    expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].str.replace(
-        "Immune cells: ", ""
-    )
-
-    found_cell_types = sorted(expression_df.loc[:, "Class"].unique())
-
-    expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].replace(
-        cell_types_to_remove, change_to
-    )
-
-    cell_types = expression_df.loc[:, "Class"].unique()
-    cell_types = sorted(cell_types)
-
-    return found_cell_types, cell_types
 
 
 def binarize_and_save_fm(expression_df, output_folder, batch_name) -> tuple:
