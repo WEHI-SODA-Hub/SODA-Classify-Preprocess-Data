@@ -170,6 +170,34 @@ def setup(output_folder, expression_mat_path):
     return expression_df
 
 
+def remove_dots(expression_df) -> pd.DataFrame:
+    """
+    Tries to translate newer QuPath data to older, more sensible format.
+    """
+
+    cols = expression_df.columns.copy()
+    # let's start easy...
+    cols = cols.str.replace("Âµm", "µm")
+    cols = cols.str.replace("µm.2", "µm^2", regex=False)
+    cols = cols.str.replace("Centroid.X.", "Centroid X ", regex=False)
+    cols = cols.str.replace("Centroid.Y.", "Centroid Y ", regex=False)
+
+    # these are "known" specific replacements
+    cols = cols.str.replace("MHC.I..", "MHC I (", regex=False)
+    cols = cols.str.replace("MHC.II..", "MHC II (", regex=False)
+    cols = cols.str.replace("MHC_I_.", "MHC_I_(", regex=False)
+    cols = cols.str.replace("MHC_II_.", "MHC_II_(", regex=False)
+
+    # once all the known specific replacements are performed, we can be a little more presumptuous...
+    cols = cols.str.replace("...", "): ", regex=False)
+    cols = cols.str.replace("..", ": ", regex=False)
+    # replaces periods with spaces when the period isn't between two numbers
+    cols = cols.str.replace("(?<!\d)\.(?!\d)", " ", regex=True)
+
+    expression_df.columns = cols
+
+    return expression_df
+
 def generate_warnings(expression_df) -> str:
     """
     Checks input dataframe for known issues:
@@ -286,19 +314,34 @@ def convert_pixels_to_micrometre(expression_df, pixel_size=0.3906):
     pixel_size = 0.3906  # fixed size (for now)
 
     for dim in ["X", "Y"]:
-        try:
-            null_arr = expression_df.loc[:, "Centroid {} µm".format(dim)].isnull()
-            if null_arr.any() != False:
-                expression_df.loc[null_arr.values, "Centroid {} µm".format(dim)] = (
-                    expression_df.loc[null_arr.values, "Centroid {} px".format(dim)]
-                    * pixel_size
-                )
-                expression_df.drop(["Centroid {} px".format(dim)], axis=1)
-        except:
-            expression_df.loc[:, "Centroid {} µm".format(dim)] = (
-                expression_df.loc[:, "Centroid {} px".format(dim)] * pixel_size
+        # case 1: Centroid X/Y µm" column exists but so does "Centroid X/Y px". Try to merge the two
+        um_col = f"Centroid {dim} µm"
+        px_col = f"Centroid {dim} px"
+        cols = expression_df.columns
+        if um_col in cols and px_col in cols:
+            # branch 1: both um and px measurements are present.
+            # fill empty um measurements with available px measurements, then drop px measurements
+            expression_df = expression_df[um_col].fillna(
+                expression_df[px_col] * pixel_size
             )
-            expression_df = expression_df.drop(["Centroid {} px".format(dim)], axis=1)
+            expression_df.drop([px_col], axis=1)
+        elif um_col not in cols and px_col in cols:
+            # branch 2: only px measurements are present.
+            # create new um column using px measurements. Then drop px measurements
+            expression_df.loc[:, um_col] = (
+                expression_df.loc[:, px_col] * pixel_size
+            )
+            expression_df = expression_df.drop([px_col], axis=1)
+        elif um_col in cols and px_col not in cols:
+            # branch 3: only um measurements are present.
+            # do nothing
+            pass
+        else:
+            # branch 4: neither um or px measurements are present.
+            # throw error.
+            raise RuntimeError(
+                "X/Y centroid measurements (in either pixels or µm) are missing!"
+            )
 
     return expression_df
 
@@ -495,6 +538,8 @@ def preprocess_training_data(
     )
 
     expression_df = setup(output_folder, expression_mat_path)
+
+    expression_df = remove_dots(expression_df)
 
     output_mibi_reporter.warnings = generate_warnings(expression_df)
 
