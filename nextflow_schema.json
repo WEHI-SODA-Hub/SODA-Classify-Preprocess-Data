@@ -73,7 +73,8 @@
                 "batch_name",
                 "target",
                 "input_data",
-                "output_folder"
+                "output_folder",
+                "target"
             ]
         },
         "generic_options": {
