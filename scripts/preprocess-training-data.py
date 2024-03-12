@@ -188,6 +188,7 @@ def remove_dots(expression_df) -> pd.DataFrame:
     cols = cols.str.replace("MHC.II..", "MHC II (", regex=False)
     cols = cols.str.replace("MHC_I_.", "MHC_I_(", regex=False)
     cols = cols.str.replace("MHC_II_.", "MHC_II_(", regex=False)
+    cols = cols.str.replace("Target.", "Target:", regex=False)
 
     # once all the known specific replacements are performed, we can be a little more presumptuous...
     cols = cols.str.replace("...", "): ", regex=False)
