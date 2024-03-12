@@ -27,7 +27,7 @@ process PREPROCESS {
 	// See: https://www.nextflow.io/docs/latest/process.html#outputs
 	// each new output needs to be placed on a new line
 	output:
-	path ("report.html")
+	path ("${batch_name}_report.html")
 	path ("${batch_name}_*_labels.csv")
 	path ("${batch_name}_images.csv")
 	path ("${batch_name}_preprocessed_input_data.csv")
@@ -42,42 +42,43 @@ process PREPROCESS {
 	flag_c = unwanted_compartments == "" ? "" : "-c '${unwanted_compartments}'"
 	flag_s = unwanted_statistics == "" ? "" : "-s '${unwanted_statistics}'"
 	'''
+	REPORT_QMD=!{batch_name}_report.qmd
 	python3 "!{preprocess_script}" !{params.target} \\
 		-d "$(realpath !{qupath_data})" \\
 		-o "$(realpath .)" \\
 		-n "!{batch_name}" \\
 		!{flag_a} !{flag_l} !{flag_t} !{flag_m} !{flag_m} !{flag_c} !{flag_s} \\
-		> report.qmd
+		> "$REPORT_QMD"
 
 	# add output locations (script has no knowledge of publishDir)
-	echo "" >> report.qmd
-	echo '# Output Paths' >> report.qmd
-	echo "" >> report.qmd
-	echo "**Cell type labels:**" >> report.qmd
-	echo "" >> report.qmd
-	echo "\\`\\`\\`" >> report.qmd
-	echo "!{params.output_folder}/!{batch_name}_cell_type_labels.csv" >> report.qmd
-	echo "\\`\\`\\`" >> report.qmd
-	echo "" >> report.qmd
-	echo "**Image list:**" >> report.qmd
-	echo "" >> report.qmd
-	echo "\\`\\`\\`" >> report.qmd
-	echo "!{params.output_folder}/!{batch_name}_images.csv" >> report.qmd
-	echo "\\`\\`\\`" >> report.qmd
-	echo "" >> report.qmd
-	echo "**Decoder:**" >> report.qmd
-	echo "" >> report.qmd
-	echo "\\`\\`\\`" >> report.qmd
-	echo "!{params.output_folder}/!{batch_name}_decoder.json" >> report.qmd
-	echo "\\`\\`\\`" >> report.qmd
-	echo "" >> report.qmd
-	echo "**Preprocessed data:**" >> report.qmd
-	echo "" >> report.qmd
-	echo "\\`\\`\\`" >> report.qmd
-	echo "!{params.output_folder}/!{batch_name}_preprocessed_input_data.csv" >> report.qmd
-	echo "\\`\\`\\`" >> report.qmd
-	echo "" >> report.qmd
+	echo "" >> "$REPORT_QMD"
+	echo '# Output Paths' >> "$REPORT_QMD"
+	echo "" >> "$REPORT_QMD"
+	echo "**Cell type labels:**" >> "$REPORT_QMD"
+	echo "" >> "$REPORT_QMD"
+	echo "\\`\\`\\`" >> "$REPORT_QMD"
+	echo "!{params.output_folder}/!{batch_name}_cell_type_labels.csv" >> "$REPORT_QMD"
+	echo "\\`\\`\\`" >> "$REPORT_QMD"
+	echo "" >> "$REPORT_QMD"
+	echo "**Image list:**" >> "$REPORT_QMD"
+	echo "" >> "$REPORT_QMD"
+	echo "\\`\\`\\`" >> "$REPORT_QMD"
+	echo "!{params.output_folder}/!{batch_name}_images.csv" >> "$REPORT_QMD"
+	echo "\\`\\`\\`" >> "$REPORT_QMD"
+	echo "" >> "$REPORT_QMD"
+	echo "**Decoder:**" >> "$REPORT_QMD"
+	echo "" >> "$REPORT_QMD"
+	echo "\\`\\`\\`" >> "$REPORT_QMD"
+	echo "!{params.output_folder}/!{batch_name}_decoder.json" >> "$REPORT_QMD"
+	echo "\\`\\`\\`" >> "$REPORT_QMD"
+	echo "" >> "$REPORT_QMD"
+	echo "**Preprocessed data:**" >> "$REPORT_QMD"
+	echo "" >> "$REPORT_QMD"
+	echo "\\`\\`\\`" >> "$REPORT_QMD"
+	echo "!{params.output_folder}/!{batch_name}_preprocessed_input_data.csv" >> "$REPORT_QMD"
+	echo "\\`\\`\\`" >> "$REPORT_QMD"
+	echo "" >> "$REPORT_QMD"
 
-	quarto render report.qmd --to html
+	quarto render "$REPORT_QMD" --to html
 	'''
 }

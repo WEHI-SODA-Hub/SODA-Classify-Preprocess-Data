@@ -179,20 +179,30 @@ def remove_dots(expression_df) -> pd.DataFrame:
     # let's start easy...
     cols = cols.str.replace("Âµm", "µm")
     cols = cols.str.replace("µm.2", "µm^2", regex=False)
-    cols = cols.str.replace("Centroid.X.", "Centroid X ", regex=False)
-    cols = cols.str.replace("Centroid.Y.", "Centroid Y ", regex=False)
 
     # these are "known" specific replacements
-    cols = cols.str.replace("MHC.I..", "MHC I (", regex=False)
-    cols = cols.str.replace("MHC.II..", "MHC II (", regex=False)
-    cols = cols.str.replace("MHC_I_.", "MHC_I_(", regex=False)
-    cols = cols.str.replace("MHC_II_.", "MHC_II_(", regex=False)
+    specific_matches = (
+        ("MHC.I..", "MHC I ("),
+        ("MHC.II..", "MHC II ("),
+        ("MHC_I_.", "MHC_I_("),
+        ("MHC_II_.", "MHC_II_("),
+        ("Target.", "Target:"),
+        ("Beta.Tubulin", "Beta-Tubulin"),
+        ("IFN.y", "IFN-y"),
+        ("HLA.DR", "HLA-DR")
+    )
+    for m, r in specific_matches:
+        cols = cols.str.replace(m, r, regex=False)
 
     # once all the known specific replacements are performed, we can be a little more presumptuous...
     cols = cols.str.replace("...", "): ", regex=False)
     cols = cols.str.replace("..", ": ", regex=False)
     # replaces periods with spaces when the period isn't between two numbers
+    # first protect Std.Dev.
+    cols = cols.str.replace("Std.Dev.", "STD_DEV_PLACEHOLDER", regex=False)
     cols = cols.str.replace("(?<!\d)\.(?!\d)", " ", regex=True)
+    # return Std.Dev.
+    cols = cols.str.replace("STD_DEV_PLACEHOLDER", "Std.Dev.", regex=False)
 
     expression_df.columns = cols
 
