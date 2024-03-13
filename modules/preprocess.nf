@@ -31,7 +31,7 @@ process PREPROCESS {
 	path ("${batch_name}_cell_type_labels.csv")
 	path ("${batch_name}_images.csv")
 	path ("${batch_name}_preprocessed_input_data.csv")
-	path ("${batch_name}_decoder.json")
+	path ("${batch_name}_decoder.json", optional: true)
 	
 	// this is an example of some code to run in the code block 
 	shell:
@@ -69,7 +69,7 @@ process PREPROCESS {
 	echo "**Decoder:**" >> "$REPORT_QMD"
 	echo "" >> "$REPORT_QMD"
 	echo "\\`\\`\\`" >> "$REPORT_QMD"
-	echo "!{params.output_folder}/!{batch_name}_decoder.json" >> "$REPORT_QMD"
+	[ -f "!{batch_name}_decoder.json" ] && echo "!{params.output_folder}/!{batch_name}_decoder.json" >> "$REPORT_QMD" || echo "None" >> "$REPORT_QMD"
 	echo "\\`\\`\\`" >> "$REPORT_QMD"
 	echo "" >> "$REPORT_QMD"
 	echo "**Preprocessed data:**" >> "$REPORT_QMD"
