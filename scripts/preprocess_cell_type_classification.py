@@ -151,8 +151,8 @@ def list_2_md_table(input_list, columns=3) -> str:
     Convert a 1D list to a markdown table with specified no. of columns.
     """
 
-    # could've used if input_list, but input_list might be a pandas series
-    if len(input_list) > 0:
+    # len(input_list) > 0 in case pandas series
+    if input_list and len(input_list) > 0:
         list2 = [
             input_list[i : i + columns] for i in range(0, len(input_list), columns)
         ]
@@ -254,42 +254,46 @@ def preprocess_celltypecolumn(
     cell types which you want to remove. By remove, the cell type will be changed to what ever you set to the variable change_to
     """
 
-    # Check that all the cell types are there
-    # remove the Edited prefix which may have occured from the qupath script
-    expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].str.replace(
-        "Edited: ", ""
-    )
-    try:
-        expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].str.replace(
+    if expression_df["Class"].notnull().any():
+        # Check that all the cell types are there
+        # remove the Edited prefix which may have occured from the qupath script
+        expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].str.replace(
             "Edited: ", ""
         )
-    except KeyError:
-        pass
+        try:
+            expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].str.replace(
+                "Edited: ", ""
+            )
+        except KeyError:
+            pass
 
-    expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].str.replace(
-        "Immune cells: ", ""
-    )
-    try:
-        expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].str.replace(
+        expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].str.replace(
             "Immune cells: ", ""
         )
-    except KeyError:
-        pass
+        try:
+            expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].str.replace(
+                "Immune cells: ", ""
+            )
+        except KeyError:
+            pass
 
-    found_cell_types = sorted(expression_df.loc[:, "Class"].unique())
+        found_cell_types = sorted(expression_df.loc[:, "Class"].unique())
 
-    expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].replace(
-        cell_types_to_remove, change_to
-    )
-    try:
-        expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].replace(
+        expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].replace(
             cell_types_to_remove, change_to
         )
-    except KeyError:
-        pass
+        try:
+            expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].replace(
+                cell_types_to_remove, change_to
+            )
+        except KeyError:
+            pass
 
-    cell_types = expression_df.loc[:, "Class"].unique()
-    cell_types = sorted(cell_types)
+            cell_types = expression_df.loc[:, "Class"].unique()
+            cell_types = sorted(cell_types)
+    else:
+        found_cell_types = None
+        cell_types = None
 
     return found_cell_types, cell_types
 
@@ -569,11 +573,18 @@ def preprocess_training_data(
     output_mibi_reporter.found_cell_types_table = list_2_md_table(found_cell_types)
     output_mibi_reporter.cell_types_table = list_2_md_table(cell_types)
 
-    encoder, decoder = create_encoder_decoder(cell_types, output_folder, batch_name)
+    if cell_types:
+        encoder, decoder = create_encoder_decoder(cell_types, output_folder, batch_name)
 
-    output_mibi_reporter.encoding_table = tabulate.tabulate(
-        [[k] for k in encoder.keys()], showindex="always"
-    )
+        output_mibi_reporter.encoding_table = tabulate.tabulate(
+            [[k] for k in encoder.keys()], showindex="always"
+        )
+
+    else:
+
+        encoder = None
+        decoder = None
+        output_mibi_reporter.encoding_table = list_2_md_table(None)
 
     save_encoded_labels(expression_df, encoder, output_folder, batch_name)
 
