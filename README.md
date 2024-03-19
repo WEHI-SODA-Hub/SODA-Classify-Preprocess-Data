@@ -1,137 +1,120 @@
-# Nextflow DSL2 template
+# MIBI Preprocess Data Pipeline
 
-This is a template for creating Nextflow DSL2 pipelines. **This template is still in development, with further features and improved documentation to be added.** 
+This Nextflow pipeline is a sub-pipeline in the MIBI suite. It is used to preprocess output QuPath
+data in preparation for XGBoost model training or application. This README contains WEHI-specific
+as well as general usage instructions.
 
-**Check out the [Nextflow guides](https://github.com/Sydney-Informatics-Hub/Nextflow_DSL2_template/tree/main/guides)** for tips and examples of various challenging aspects of writing Nextflow code for beginners. We're progressively developing it as we write our own Nextflow pipelines.    
+## Introduction
 
-## Description  
-[Nextflow](https://www.nextflow.io/) is open source and scalable workflow management software, initially developed for bioinformatics. It enables the development and running of integrated, reproducible workflows consisting of multiple processes, various environment management systems, scripting languages, and software packages. While Nextflow is designed to have a minimal learning curve as it doesnt require end users to learn new programming languages, its extensive capabilities, use of Groovy syntax, and [comprehensive documentation](https://www.nextflow.io/docs/latest/index.html) can be overwhelming for users who aren't well versed in programming and software development.  
+This pipeline is a single-process pipeline, and is mostly used as an interface to Nextflow tower. It
+takes output from QuPath and applies the following transformations:
 
-We developed this template to aid beginners in developing their own Nextflow workflows. Depending on your needs you can edit the files here to develop your own bioinformatics workflows. 
+1. Try to fix punctuation issues in headers from newer QuPath data
+   * e.g., on export QuPath will represent `MHC I (HLA-DR): Membrane: Percentile: 98.0` as `MHC.I..HLA.DR...Membrane..Percentile..98.0`.
+1. Removes redundant text from the class column like "Editied: ", and "Immune cells: "
+2. Converts pixel length measurements to micrometre (if relevant).
+4. Removes "Target: " from column names and replaces underscores with spaces
+5. Attempts to merge duplicate columns (after transformation 3.)
+6. Replaces Cytoplasm measurements with membrane measurements
+7. Replace Nucleus measurements with Cell measurements in the case where there are Nucleus measurement values missing
+8. Remove user-defined unwanted cell types, markers, compartments, or statistics
 
-## Installing Nextflow
+At the end of pipeline, a report is generated which supplies information about the input data, which
+you can use to decide which cell types, markers, compartments, and/or statistics to discard in the
+next run.
 
-Depending on the system you're working on there are a few options for installing and running Nextflow including reproducible options like bioconda and Singularity. See [here](https://nf-co.re/usage/installation) for installation instructions. 
+## Usage
 
-Once you have installed Nextflow, you can configure it to run on your system. This template only provides the standard `nextflow.config` file. See [here](https://nf-co.re/usage/configuration#running-nextflow-on-your-system) for tips on creating your own configuration files from the team at nf-core. Also see [here](https://www.nextflow.io/blog/2021/nextflow-developer-environment.html) for some set up tips.
-
-## Using this repository 
-
-This repository contains an example workflow with two processes, one that follows on from the other. The example processes contain a small bash command each that play around with the text in `samples.txt` (provided). It is currently only designed for small workflows that can be run with any of the provided config files. 
-
-As is standard for all nextflow pipelines, when the template is run from within the `Nextflow_DSL2_template` repository, some details will be printed to the screen, and a number of directories will be created in the `Nextflow_DSL2_template` repository. This includes: 
-* A `work/` directory 
-* A `.nextflow.log` file
-* A `.nextflow/` directory 
-* Outputs specified by the example code: `results/` which contains results and `runInfo` which contains runtime reports.
-
-Run the workflow with the standard profile (requires Singularity), with:
-
-```
-nextflow run main.nf \
-	--input samples.txt \
-	-c config/standard.config
-```
-
-If you are working on either Setonix or Gadi HPCs, you will need to specify absolute paths to your input file and edit the provided infrastructure-specific config file according to your project space and user ID. For example, to run on NCI's Gadi HPC:
+Parameters:
 
 ```
-nextflow run main.nf \
-	--input /scratch/ab11/gs5555/Nextflow_DSL2_template/samples.txt \
-	-c /scratch/ab11/gs5555/Nextflow_DSL2_template/config/gadi.config
+  Usage:  nextflow run main.nf
+
+  Required Arguments:
+
+  --batch_name BATCH_NAME
+        Batch name used to label output files.
+  --output_folder OUTPUT_FOLDER
+        Where preprocessed files will be stored. The folder will be created if it doesn't already exist.
+  --input_data QUPATH_DATA
+        The raw data exported from QuPath to be preprocessed.
+
+  Optional Arguments:
+
+  --additional_meta_data ADDITIONAL_METADATA
+        A comma-delimited list of additional metadata columns you wish to keep.
+  --cell_types_to_remove CELL_TYPES_TO_REMOVE
+        A comma-delimited list of cell types identified that you wish to remove. E.g., "B cells,CD4 T cells".
+  --change_to CHANGE_UNWANTED_CELLTYPES_TO
+        The label assigned to celltypes that you have flagged for removal. Default: Other.
+  --unwanted_markers UNWANTED_MARKERS
+        A comma-delimited list of markers you want to remove from the phenotyping.
+  --unwanted_compartments UNWANTED_COMPARTMENTS
+        A comma-delimited list of compartments you want to remove from the phenotyping.
+  --unwanted_statistics UNWANTED_STATISTICS
+        A comma-delimited list of statistics you want to remove from the phenotyping.
+  --memory
+        The RAM to allocate for the preprocessing. Include units e.g. "2 GB"
+  --before_script
+        Command or script to run before the process runs e.g. to make conda available.
 ```
 
-This repository is structured as follows: 
+When you're preprocessing "fresh" data, at first, you only need to supply `--batch_name`, `--output_folder`, and `--input_data`.
+After inspecting the results, you can supply the optional arguments as needed.
+
+If you feel comfortable with the command line, you can run the preprocessing Python script directly.
 
 ```
-Nextflow_DSL2_template
-├── LICENSE
-├── README.md
-├── cleanup
-├── config
-    ├── gadi.config
-│   ├── nimbus.config
-│   ├── setonix.config
-│   └── standard.config
-├── main.nf
-├── guides 
-├── modules
-│   ├── process1.nf
-│   └── process2.nf
-├── nextflow.config
-├── run_pipeline
-└── samples.txt
+$ conda env create -f envs/environment.yml
+$ conda activate xgboost-cell-classification
+$ python scripts/preprocess-training-data.py --help
+usage: MIBI-preprocess-data [-h] -n BATCH_NAME [-o OUTPUT_FOLDER] -d QUPATH_DATA [-a ADDITIONAL_METADATA_TO_KEEP] [-l UNWANTED_CELLTYPES] [-t CHANGE_UNWANTED_CELLTYPES_TO] [-m UNWANTED_MARKERS]
+                            [-c UNWANTED_COMPARTMENTS] [-s UNWANTED_STATISTICS]
+
+This script is for preprocessing annotated data which has been exported from QuPath. The data will be exported for XGBoost training.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -n BATCH_NAME, --batch-name BATCH_NAME
+                        Batch name used to label output files.
+  -o OUTPUT_FOLDER, --output-folder OUTPUT_FOLDER
+                        Where preprocessed files will be stored. The folder will be created if it doesn't already exist.
+  -d QUPATH_DATA, --qupath-data QUPATH_DATA
+                        The raw data exported from QuPath to be preprocessed.
+  -a ADDITIONAL_METADATA_TO_KEEP, --additional-metadata-to-keep ADDITIONAL_METADATA_TO_KEEP
+                        A comma-delimited list of additional metadata columns you wish to keep.
+  -l UNWANTED_CELLTYPES, --unwanted-celltypes UNWANTED_CELLTYPES
+                        A comma-delimited list of cell types identified that you wish to remove. E.g., "B cells,CD4 T cells".
+  -t CHANGE_UNWANTED_CELLTYPES_TO, --change-unwanted-celltypes-to CHANGE_UNWANTED_CELLTYPES_TO
+                        The label assigned to celltypes that you have flagged for removal. Default: Other.
+  -m UNWANTED_MARKERS, --unwanted-markers UNWANTED_MARKERS
+                        A comma-delimited list of markers you want to remove from the phenotyping.
+  -c UNWANTED_COMPARTMENTS, --unwanted-compartments UNWANTED_COMPARTMENTS
+                        A comma-delimited list of compartments you want to remove from the phenotyping.
+  -s UNWANTED_STATISTICS, --unwanted-statistics UNWANTED_STATISTICS
+                        A comma-delimited list of statistics you want to remove from the phenotyping.
 ```
-The main components for using this template are: 
-* `main.nf` 
-* `nextflow.config` 
-* `modules/` 
-* `config/`
 
-Some extra components for running this template are: 
-* `cleanup`: removes workdir, results directory, as well as hidden nextflow logs and directories that will be generated when the template example is run. To use: `bash cleanup` 
-* `run_pipeline`: runs the nextflow command for this template. To use: `bash run_pipeline` 
-* `samples.txt`: contains an example file to be processed with the example processes in the template. 
-* `guides`: short explainers of how to construct various features using nextflow. This will be added to progressively.  
+## Pipeline Output
 
-### What's in `main.nf`? 
+The pipeline will produce an HTML report which you can view in your browser. This report povides detailed information for you to
+inspect. This report is named `report.html` and is saved in the directory as specified by `--output_folder`.
 
-This is the primary pipeline script which pulls additional code for subprocesses from the `module/` directory. It contains: 
-* DSL-2 enable command 
-* A customisable header for the pipeline that will be printed to the screen when run with `nextflow run main.nf` 
-* A customisable help command for the pipeline that can be printed when `nextflow run main.nf --help` is run. This can also be customised to be run when default/required arguments are not provided. To do this, see the `workflow` help function. 
-* Channel defintions to be included in the workflow. See [here](https://www.nextflow.io/docs/latest/dsl2.html#channel-forking) for more details.  
-* The main workflow structure that determines which processes will be run in what order (based on input and outputs provided). This template only includes 2 templates. This is required by DSL-2 syntax. 
-* A customisable statement printed to the screen upon workflow completion. The statement to be printed depends on whether the workflow completed successfully. 
+The pipeline will also produce 4 files:
 
-### What's in `nextflow.config`? 
+* `<batch name>_preprocessed_input_data.csv` - the fully pre-processed results.
+* `<batch name>_cell_type_labels.csv` - the integer cell type label corresponding to each row of the preprocessed data CSV.
+* `<batch name>_decoder.json` - the dictionary to convert cell type integer values back to the text labels. This won't be produced when preprocessing training data i.e., when the `CLASS` column is empty.
+* `<batch name>_images.csv` - the image file and centroid coordinates associated with each cell obvservation.
 
-This is the main configuration script that Nextflow looks for when you run `nextflow run main.nf`. It contains a number of property definitions that are used by the pipeline. A key feature of Nextflow is the ability to separate workflow implementation from the underlying execution platformm using this configuration file. Since we can add additional configuration files for different run environments (i.e. job schedulers, use of singularity vs bioconda) each configuration file can contain conflicting settings and parameters listed in this file can be overwritten in the run command by specifiying relevant commands. See [here](https://www.nextflow.io/docs/latest/config.html#configuration-file) for details on the heirarchy of confuration files. This file contains: 
-* Mainfest for defining some metadata including authorship, link to the repo, workflow version, etc 
-* Mandated minimal version of Nextflow that can be used to run this pipeline 
-* Resume function that allows the pipeline to start up at the last successful process if the run fails part way through (currently enabled) 
-* Various profile definitions that can be activated when launching a pipeline. These can be used together, depending on their requirements. We can define various profiles depending on the system you're using. See [here](https://www.nextflow.io/docs/latest/config.html?highlight=profiles#config-profiles) for more details on what sorts of things can be included here. 
-* Default parameters for running the pipeline. These include default file names, containers, paths, etc. These can be overwritten when launching the pipeline. 
-* Customisable workflow run info reports with `dag{}`, `report{}`, `timeline{}`, and `trace{}`. You can specify where to output these run summary files. 
+If using the Python script directly, the same 4 output files are produced, but the report is printed to the terminal in markdown
+format. This can be rendered by quarto, if so desired (but not strictly necessary).
 
-### What's in `config/`? 
+## Credits
 
-This directory contains various profile modules for configuring the pipeline run. Some care should be taken when using these config profiles. See the [Nextflow documentation](https://nextflow.io/docs/latest/config.html#config-profiles) for more details.
+The core functionality of the MIBI pipeline was developed by Kenta Yotoke (@yokotenka) under the supervision of Claire Marceaux 
+(@ClaireMarceaux). The pipeline was adapted to Nextflow by Edward Yang (@edoyango).
 
-This directory contains the following profiles:
-* `nimbus`: this profile is specific to Pawsey Supercomputing Centre's Nimbus cloud. It enables the use of Docker. 
-* `standard`: this is the default profile which runs Singularity.
-* `setonix`: this profile is specific to Pawsey Supercomputing Centre's Setonix HPC. It enables the use of the SLURM job scheduler and Singularity.  
-* `gadi`: this profile is specific to the National Computational Infrastructure's Gadi HPC. It enables the use of the PBS Pro job scheduler and Singularity 
+## Citation
 
-### What's in `modules/`?
-
-This directory contains all sub-workflows to be run with `nextflow run main.nf`. It is considered good practice to split out processes into separate `.nf` files and store them here, rather than including them all in the `main.nf` file. This directory is referenced in `main.nf` by using [`include {x} from ./modules/process`](https://www.nextflow.io/docs/latest/dsl2.html#modules). These process scripts currently contain all code to be run in the `script:` block. 
-
-Each `.nf` script contains the process to be run, in addition to details of which container to be used, where to publish the output for the process. 
-
-### Monitoring workflow run 
-
-A great feature of Nextflow is its ability to produce [metric reports](https://www.nextflow.io/docs/latest/metrics.html#) on run execution including walltime, I/O, and resource usage for each report. These are currently enabled in the `nextflow.config` template.  
-
-## Recommended coding conventions 
-
-We're currently working on this. Some recommendations regarding code structure and syntax for Nextflow workflows coming soon! 
-
-## Resources 
-* [Nextflow training workshop materials](https://training.seqera.io/) 
-* [Nextflow YouTube channel](https://www.youtube.com/c/Nextflow)  
-* [Nextflow quick start guide](https://www.nextflow.io/index.html#GetStarted)
-* [Intro to Nextflow workflows](https://carpentries-incubator.github.io/workflows-nextflow/01-getting-started-with-nextflow/index.html)
-* [Nextflow's nf-core pipelines](https://nf-co.re/)
-* [NF-camp tutorial converting rnaseq-nf pipeline to DSL2](https://github.com/nextflow-io/nfcamp-tutorial)  
-* [DSL2 pipeline structure walkthrough video from nf-core](https://www.youtube.com/watch?v=0xjc7PkF1Bc)
-* [DSL2 modules tutorial video](https://www.youtube.com/watch?v=6k9lWewSBYc)  
-* [Intro to DSL2 video](https://www.youtube.com/watch?v=I-hunuzsh6A&t=658s)  
-* [Nextflow for data intensive pipelines from Pawsey Supercomputing Center](https://www.youtube.com/watch?v=bIRLbYPWHoM)
-* [A great self guided DSL2 tutorial](https://antunderwood.gitlab.io/bioinformant-blog/posts/building_a_dsl2_pipeline_in_nextflow/)  
-* [Australian BioCommons workflow documentation guidelines](https://github.com/AustralianBioCommons/doc_guidelines)
-
-## Acknowledgements 
-
-The work presented here was developed by the Sydney Informatics Hub, a Core Research Facility of the University of Sydney and the Australian BioCommons which is enabled by NCRIS via Bioplatforms Australia. 
+TBC

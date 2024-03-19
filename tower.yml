@@ -1,0 +1,3 @@
+reports:
+  "*_report.html":
+    display: "Preprocessing Results"
