@@ -3,7 +3,6 @@
 // Enable DSL-2 syntax
 nextflow.enable.dsl=2
 
-// Define the process
 process PREPROCESS {	
 	cpus "${params.cpus}"
 	publishDir "${params.output_folder}", mode: 'copy'
@@ -11,8 +10,6 @@ process PREPROCESS {
 	memory "${params.memory}"
 	beforeScript "${params.before_script}"
 
-	// See: https://www.nextflow.io/docs/latest/process.html#inputs
-	// each input needs to be placed on a new line
 	input:
 	val batch_name
 	path qupath_data
@@ -24,8 +21,6 @@ process PREPROCESS {
 	val unwanted_statistics
 	path preprocess_script
 
-	// See: https://www.nextflow.io/docs/latest/process.html#outputs
-	// each new output needs to be placed on a new line
 	output:
 	path ("${batch_name}_report.html")
 	path ("${batch_name}_*_labels.csv")
@@ -33,7 +28,6 @@ process PREPROCESS {
 	path ("${batch_name}_preprocessed_input_data.csv")
 	path ("${batch_name}_decoder.json", optional: true)
 	
-	// this is an example of some code to run in the code block 
 	shell:
 	flag_a = additional_meta_data == "" ? "" : "-a '${additional_meta_data}'"
 	flag_l = cell_types_to_remove == "" ? "" : "-l '${cell_types_to_remove}'"

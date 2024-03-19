@@ -9,13 +9,15 @@ as well as general usage instructions.
 This pipeline is a single-process pipeline, and is mostly used as an interface to Nextflow tower. It
 takes output from QuPath and applies the following transformations:
 
+1. Try to fix punctuation issues in headers from newer QuPath data
+   * e.g., on export QuPath will represent `MHC I (HLA-DR): Membrane: Percentile: 98.0` as `MHC.I..HLA.DR...Membrane..Percentile..98.0`.
 1. Removes redundant text from the class column like "Editied: ", and "Immune cells: "
-2. Converts pixel length measurements to micrometre
-3. Removes "Target: " from column names and replaces underscores with spaces
-4. Attempts to merge duplicate columns (after transformation 3.)
-5. Replaces Cytoplasm measurements with membrane measurements
-6. Replace Nucleus measurements with Cell measurements in the case where there are Nucleus measurement values missing
-7. Remove user-defined unwanted cell types, markers, compartments, or statistics
+2. Converts pixel length measurements to micrometre (if relevant).
+4. Removes "Target: " from column names and replaces underscores with spaces
+5. Attempts to merge duplicate columns (after transformation 3.)
+6. Replaces Cytoplasm measurements with membrane measurements
+7. Replace Nucleus measurements with Cell measurements in the case where there are Nucleus measurement values missing
+8. Remove user-defined unwanted cell types, markers, compartments, or statistics
 
 At the end of pipeline, a report is generated which supplies information about the input data, which
 you can use to decide which cell types, markers, compartments, and/or statistics to discard in the
@@ -102,7 +104,7 @@ The pipeline will also produce 4 files:
 
 * `<batch name>_preprocessed_input_data.csv` - the fully pre-processed results.
 * `<batch name>_cell_type_labels.csv` - the integer cell type label corresponding to each row of the preprocessed data CSV.
-* `<batch name>_decoder.json` - the dictionary to convert cell type integer values back to the text labels.
+* `<batch name>_decoder.json` - the dictionary to convert cell type integer values back to the text labels. This won't be produced when preprocessing training data i.e., when the `CLASS` column is empty.
 * `<batch name>_images.csv` - the image file and centroid coordinates associated with each cell obvservation.
 
 If using the Python script directly, the same 4 output files are produced, but the report is printed to the terminal in markdown

@@ -86,22 +86,12 @@ def helpMessage() {
 """.stripIndent()
 }
 
-/// Main workflow structure. Include some input/runtime tests here.
-// Make sure to comment what each step does for readability. 
-
 workflow {
 
 	// Show help message if --help is run or if any required params are not  provided at runtime
 	if ( params.help || params.batch_name == "" || params.output_folder == "" || params.input_data == ""){   
-	// Invoke the help function above and exit
 		helpMessage()
 		exit 1
-		// consider adding some extra contigencies here.
-		// could validate path of all input files in list?
-		// could validate indexes for input files exist?
-		// could validate indexes for reference exist?
-
-	// if none of the above are a problem, then run the workflow
 	} else {
 		// Run preprocessing process
 		(qmd, cell_type_labels, images, results, decoder) = PREPROCESS(
@@ -115,7 +105,6 @@ workflow {
                   params.unwanted_statistics,
                   Channel.fromPath(params.preprocess_script)
             )
-            // report = RENDER(qmd)
 	}
 }
 
