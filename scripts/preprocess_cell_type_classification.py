@@ -151,13 +151,16 @@ def list_2_md_table(input_list, columns=3) -> str:
     Convert a 1D list to a markdown table with specified no. of columns.
     """
 
-    # len(input_list) > 0 in case pandas series
-    if input_list and len(input_list) > 0:
-        list2 = [
-            input_list[i : i + columns] for i in range(0, len(input_list), columns)
-        ]
-        return tabulate.tabulate(list2)
-    else:
+    try:
+        # len(input_list) > 0 in case pandas series
+        if len(input_list) > 0:
+            list2 = [
+                input_list[i : i + columns] for i in range(0, len(input_list), columns)
+            ]
+            return tabulate.tabulate(list2)
+        else:
+            return str(None)
+    except TypeError: # catch input_list = None
         return str(None)
 
 
@@ -289,8 +292,8 @@ def preprocess_celltypecolumn(
         except KeyError:
             pass
 
-            cell_types = expression_df.loc[:, "Class"].unique()
-            cell_types = sorted(cell_types)
+        cell_types = expression_df.loc[:, "Class"].unique()
+        cell_types = sorted(cell_types)
     else:
         found_cell_types = None
         cell_types = None
