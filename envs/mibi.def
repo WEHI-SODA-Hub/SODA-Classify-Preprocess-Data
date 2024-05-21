@@ -8,3 +8,5 @@ from: mambaorg/micromamba:1.5.8-bookworm-slim
   ls /opt
   micromamba install -n base -f /opt/environment.yml
   micromamba clean -ay
+  apt-get update
+  apt-get install procps -y
