@@ -94,7 +94,7 @@ workflow {
 		exit 1
 	} else {
 		// Run preprocessing process
-		(qmd, cell_type_labels, images, results, decoder) = PREPROCESS(
+		results = PREPROCESS(
                   params.batch_name,
                   Channel.fromPath(params.input_data),
                   params.additional_meta_data,

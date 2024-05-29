@@ -27,6 +27,7 @@ process PREPROCESS {
 	path ("${batch_name}_images.csv")
 	path ("${batch_name}_preprocessed_input_data.csv")
 	path ("${batch_name}_decoder.json", optional: true)
+	path ("${batch_name}_binarized_labels.csv", optional: true) // only presen if target=functional-marker
 	
 	shell:
 	flag_a = additional_meta_data == "" ? "" : "-a '${additional_meta_data}'"
@@ -72,6 +73,14 @@ process PREPROCESS {
 	echo "!{params.output_folder}/!{batch_name}_preprocessed_input_data.csv" >> "$REPORT_QMD"
 	echo "\\`\\`\\`" >> "$REPORT_QMD"
 	echo "" >> "$REPORT_QMD"
+	if [ "!{params.target}" == "functional-marker" ]
+	then
+		echo "**Binarized Classification Labels:**" >> "$REPORT_QMD"
+		echo "\\`\\`\\`" >> "$REPORT_QMD"
+		echo "!{params.output_folder}/!{batch_name}_binarized_labels.csv" >> "$REPORT_QMD"
+		echo "\\`\\`\\`" >> "$REPORT_QMD"
+		echo "" >> "$REPORT_QMD"
+	fi
 
 	quarto render "$REPORT_QMD" --to html
 	'''
