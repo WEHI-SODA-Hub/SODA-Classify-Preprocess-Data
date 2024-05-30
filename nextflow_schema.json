@@ -20,7 +20,8 @@
                     "description": "Whether to preprocess the data for the 'cell type' classification pipeline, or the 'functional marker' classification pipeline",
                     "enum": [
                         "cell-type",
-                        "functional-marker"
+                        "fm-measurements-only",
+                        "fm-with-celltype"
                     ]
                 },
                 "input_data": {

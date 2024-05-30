@@ -50,8 +50,8 @@ def helpMessage() {
   --batch_name BATCH_NAME
         Batch name used to label output files.
   --target TARGET
-        Whether to preprocess the data for the "cell-type" classification 
-        pipeline, or the "functional-marker" classification pipeline
+        Whether to preprocess the data for the "cell-type", "fm-measurements-only", or the 
+        "fm-with-celltype" pipeline.
   --output_folder OUTPUT_FOLDER
         Where preprocessed files will be stored. The folder will be created if 
         it doesn't already exist.
