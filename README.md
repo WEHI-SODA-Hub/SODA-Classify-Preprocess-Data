@@ -34,8 +34,12 @@ Parameters:
 
   --batch_name BATCH_NAME
         Batch name used to label output files.
+  --target TARGET
+        Whether to preprocess the data for the "cell-type", "fm-measurements-only", or the 
+        "fm-with-celltype" pipeline.
   --output_folder OUTPUT_FOLDER
-        Where preprocessed files will be stored. The folder will be created if it doesn't already exist.
+        Where preprocessed files will be stored. The folder will be created if 
+        it doesn't already exist.
   --input_data QUPATH_DATA
         The raw data exported from QuPath to be preprocessed.
 
@@ -44,19 +48,25 @@ Parameters:
   --additional_meta_data ADDITIONAL_METADATA
         A comma-delimited list of additional metadata columns you wish to keep.
   --cell_types_to_remove CELL_TYPES_TO_REMOVE
-        A comma-delimited list of cell types identified that you wish to remove. E.g., "B cells,CD4 T cells".
+        A comma-delimited list of cell types identified that you wish to remove. 
+        E.g., "B cells,CD4 T cells".
   --change_to CHANGE_UNWANTED_CELLTYPES_TO
-        The label assigned to celltypes that you have flagged for removal. Default: Other.
+        The label assigned to celltypes that you have flagged for removal. 
+        Default: Other.
   --unwanted_markers UNWANTED_MARKERS
-        A comma-delimited list of markers you want to remove from the phenotyping.
+        A comma-delimited list of markers you want to remove from the 
+        phenotyping.
   --unwanted_compartments UNWANTED_COMPARTMENTS
-        A comma-delimited list of compartments you want to remove from the phenotyping.
+        A comma-delimited list of compartments you want to remove from the 
+        phenotyping.
   --unwanted_statistics UNWANTED_STATISTICS
-        A comma-delimited list of statistics you want to remove from the phenotyping.
+        A comma-delimited list of statistics you want to remove from the 
+        phenotyping.
   --memory
         The RAM to allocate for the preprocessing. Include units e.g. "2 GB"
   --before_script
-        Command or script to run before the process runs e.g. to make conda available.
+        Command or script to run before the process runs e.g. to make conda 
+        available.
 ```
 
 When you're preprocessing "fresh" data, at first, you only need to supply `--batch_name`, `--output_folder`, and `--input_data`.
@@ -67,11 +77,19 @@ If you feel comfortable with the command line, you can run the preprocessing Pyt
 ```
 $ conda env create -f envs/environment.yml
 $ conda activate xgboost-cell-classification
-$ python scripts/preprocess-training-data.py --help
-usage: MIBI-preprocess-data [-h] -n BATCH_NAME [-o OUTPUT_FOLDER] -d QUPATH_DATA [-a ADDITIONAL_METADATA_TO_KEEP] [-l UNWANTED_CELLTYPES] [-t CHANGE_UNWANTED_CELLTYPES_TO] [-m UNWANTED_MARKERS]
+$ python python3 bin/mibi-preprocess.py --help
+usage: MIBI-preprocess-data [-h] -n BATCH_NAME [-o OUTPUT_FOLDER] -d QUPATH_DATA [-a ADDITIONAL_METADATA_TO_KEEP]
+                            [-l UNWANTED_CELLTYPES] [-t CHANGE_UNWANTED_CELLTYPES_TO] [-m UNWANTED_MARKERS]
                             [-c UNWANTED_COMPARTMENTS] [-s UNWANTED_STATISTICS]
+                            {cell-type,fm-measurements-only,fm-with-celltype}
 
-This script is for preprocessing annotated data which has been exported from QuPath. The data will be exported for XGBoost training.
+This script is for preprocessing annotated data which has been exported from QuPath. The data will be exported for XGBoost
+training or any supervised machine learning method of choice.
+
+positional arguments:
+  {cell-type,fm-measurements-only,fm-with-celltype}
+                        Whether to preprocess the data for the "cell type" classification pipeline, or the "functional marker"
+                        classification pipeline
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -106,6 +124,7 @@ The pipeline will also produce 4 files:
 * `<batch name>_cell_type_labels.csv` - the integer cell type label corresponding to each row of the preprocessed data CSV.
 * `<batch name>_decoder.json` - the dictionary to convert cell type integer values back to the text labels. This won't be produced when preprocessing training data i.e., when the `CLASS` column is empty.
 * `<batch name>_images.csv` - the image file and centroid coordinates associated with each cell obvservation.
+* `<batch name>_binarized_labels.csv` - Classifications converted to 1/0 based on +/- (only if using `fm-*` targets).
 
 If using the Python script directly, the same 4 output files are produced, but the report is printed to the terminal in markdown
 format. This can be rendered by quarto, if so desired (but not strictly necessary).
