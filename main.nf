@@ -33,7 +33,6 @@ change_to             : ${params.change_to}
 unwanted_markers      : ${params.unwanted_markers}
 unwanted_compartments : ${params.unwanted_compartments}
 unwanted_statistics   : ${params.unwanted_statistics}
-preprocess_script     : ${params.preprocess_script}
 workDir               : ${workflow.workDir}
 RAM                   : ${params.memory}
 =======================================================================================
@@ -102,8 +101,7 @@ workflow {
                   params.change_to,
                   params.unwanted_markers,
                   params.unwanted_compartments,
-                  params.unwanted_statistics,
-                  Channel.fromPath(params.preprocess_script)
+                  params.unwanted_statistics
             )
 	}
 }

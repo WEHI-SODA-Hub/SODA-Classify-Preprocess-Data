@@ -19,7 +19,6 @@ process PREPROCESS {
 	val unwanted_markers
 	val unwanted_compartments
 	val unwanted_statistics
-	path preprocess_script
 
 	output:
 	path ("${batch_name}_report.html")
@@ -38,7 +37,7 @@ process PREPROCESS {
 	flag_s = unwanted_statistics == "" ? "" : "-s '${unwanted_statistics}'"
 	'''
 	REPORT_QMD=!{batch_name}_report.qmd
-	python3 "!{preprocess_script}" !{params.target} \\
+	mibi-preprocess.py !{params.target} \\
 		-d "$(realpath !{qupath_data})" \\
 		-o "$(realpath .)" \\
 		-n "!{batch_name}" \\

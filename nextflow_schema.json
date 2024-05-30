@@ -72,7 +72,6 @@
                 "memory",
                 "cpus",
                 "batch_name",
-                "target",
                 "input_data",
                 "output_folder",
                 "target"
