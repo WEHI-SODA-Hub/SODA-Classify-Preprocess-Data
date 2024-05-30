@@ -63,7 +63,7 @@ The data will be exported for XGBoost training or any supervised machine learnin
     parser.add_argument(
         "target",
         help='Whether to preprocess the data for the "cell type" classification pipeline, or the "functional marker" classification pipeline',
-        choices=["cell-type", "fm-measurements-only", "fm-with-celltype"],
+        choices=["main-cell-type", "fm-markers-only", "fm-with-celltype"],
     )
 
     args = parser.parse_args()
@@ -108,7 +108,7 @@ The data will be exported for XGBoost training or any supervised machine learnin
     except:
         unwanted_statistics = []
 
-    if args.target == "cell-type":
+    if args.target == "main-cell-type":
         from preprocess_cell_type_classification import preprocess_training_data
         output_mibi_reporter = preprocess_training_data(
             batch_name,
@@ -123,7 +123,7 @@ The data will be exported for XGBoost training or any supervised machine learnin
         )
     else: # fm
         from preprocess_functional_marker_classification import preprocess_training_data
-        if args.target == "fm-measurements-only":
+        if args.target == "fm-markers-only":
             with_celltype = False
         else: # fm-with-celltype
             with_celltype = True

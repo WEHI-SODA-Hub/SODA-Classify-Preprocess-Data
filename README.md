@@ -35,8 +35,8 @@ Parameters:
   --batch_name BATCH_NAME
         Batch name used to label output files.
   --target TARGET
-        Whether to preprocess the data for the "cell-type", "fm-measurements-only", or the 
-        "fm-with-celltype" pipeline.
+        Whether to preprocess the data for the "main-cell-type", 
+        "fm-markers-only", or the "fm-with-celltype" pipeline.
   --output_folder OUTPUT_FOLDER
         Where preprocessed files will be stored. The folder will be created if 
         it doesn't already exist.
@@ -81,13 +81,13 @@ $ python python3 bin/mibi-preprocess.py --help
 usage: MIBI-preprocess-data [-h] -n BATCH_NAME [-o OUTPUT_FOLDER] -d QUPATH_DATA [-a ADDITIONAL_METADATA_TO_KEEP]
                             [-l UNWANTED_CELLTYPES] [-t CHANGE_UNWANTED_CELLTYPES_TO] [-m UNWANTED_MARKERS]
                             [-c UNWANTED_COMPARTMENTS] [-s UNWANTED_STATISTICS]
-                            {cell-type,fm-measurements-only,fm-with-celltype}
+                            {cell-type,fm-markers-only,fm-with-celltype}
 
 This script is for preprocessing annotated data which has been exported from QuPath. The data will be exported for XGBoost
 training or any supervised machine learning method of choice.
 
 positional arguments:
-  {cell-type,fm-measurements-only,fm-with-celltype}
+  {main-cell-type,fm-markers-only,fm-with-celltype}
                         Whether to preprocess the data for the "cell type" classification pipeline, or the "functional marker"
                         classification pipeline
 
