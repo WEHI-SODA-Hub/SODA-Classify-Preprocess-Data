@@ -9,6 +9,7 @@ process PREPROCESS {
 	conda "${projectDir}/envs/environment.yml"
 	memory "${params.memory}"
 	beforeScript "${params.before_script}"
+	container "oras://ghcr.io/wehi-researchcomputing/mibi:0.1"
 
 	input:
 	val batch_name
@@ -19,14 +20,14 @@ process PREPROCESS {
 	val unwanted_markers
 	val unwanted_compartments
 	val unwanted_statistics
-	path preprocess_script
 
 	output:
 	path ("${batch_name}_report.html")
-	path ("${batch_name}_cell_type_labels.csv")
+	path ("${batch_name}_*_labels.csv")
 	path ("${batch_name}_images.csv")
 	path ("${batch_name}_preprocessed_input_data.csv")
 	path ("${batch_name}_decoder.json", optional: true)
+	path ("${batch_name}_binarized_labels.csv", optional: true) // only presen if target=functional-marker
 	
 	shell:
 	flag_a = additional_meta_data == "" ? "" : "-a '${additional_meta_data}'"
@@ -37,7 +38,7 @@ process PREPROCESS {
 	flag_s = unwanted_statistics == "" ? "" : "-s '${unwanted_statistics}'"
 	'''
 	REPORT_QMD=!{batch_name}_report.qmd
-	python3 "!{preprocess_script}" \\
+	mibi-preprocess.py !{params.target} \\
 		-d "$(realpath !{qupath_data})" \\
 		-o "$(realpath .)" \\
 		-n "!{batch_name}" \\
@@ -72,6 +73,15 @@ process PREPROCESS {
 	echo "!{params.output_folder}/!{batch_name}_preprocessed_input_data.csv" >> "$REPORT_QMD"
 	echo "\\`\\`\\`" >> "$REPORT_QMD"
 	echo "" >> "$REPORT_QMD"
+	if [[ "!{params.target}" == "fm"* ]]
+	then
+		echo "**Binarized Classification Labels:**" >> "$REPORT_QMD"
+		echo "" >> "$REPORT_QMD"
+		echo "\\`\\`\\`" >> "$REPORT_QMD"
+		echo "!{params.output_folder}/!{batch_name}_binarized_labels.csv" >> "$REPORT_QMD"
+		echo "\\`\\`\\`" >> "$REPORT_QMD"
+		echo "" >> "$REPORT_QMD"
+	fi
 
 	quarto render "$REPORT_QMD" --to html
 	'''
