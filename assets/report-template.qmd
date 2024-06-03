@@ -1,0 +1,521 @@
+---
+title: MIBI data preprocessing summary report
+date: now
+execute:
+  echo: false
+  output: false
+format:
+  html:
+    number-sections: true
+    embed-resources: true
+    theme: cosmo
+    page-layout: full
+    toc: true
+    toc-location: left
+    code-fold: true
+    code-tools: true
+---
+
+```{python}
+#| tags: [parameters]
+
+batch_name = "test"
+output_folder = "."
+unwanted_celltypes = ""
+qupath_data = "test-celltype-data.csv"
+additional_metadata_to_keep = ""
+unwanted_celltypes = ""
+change_unwanted_celltypes_to = "Other"
+unwanted_markers = ""
+unwanted_compartments = ""
+unwanted_statistics = ""
+target = "main-cell-type"
+```
+
+```{python}
+#| label: process-args
+
+def validate_arg(arg, argname):
+    if not arg:
+        raise RuntimeError(f"{argname} parameter needs to be defined")
+
+validate_arg(batch_name, "batch_name")
+validate_arg(output_folder, "output_folder")
+validate_arg(qupath_data, "qupath_data")
+
+valid_target = ["main-cell-type", "fm-markers-only", "fm-with-celltypes"]
+if (not target) or target not in valid_target:
+    raise RuntimeError(f"target must either one of {valid_target}")
+
+cell_types_to_remove = [s.strip() for s in unwanted_celltypes.split(",")] if unwanted_celltypes else []
+additional_metadata_to_keep = [s.strip() for s in additional_metadata_to_keep.split(",")] if additional_metadata_to_keep else []
+unwanted_markers = [s.strip() for s in unwanted_markers.split(",")] if unwanted_markers else []
+unwanted_compartments = [s.strip() for s in unwanted_compartments.split(",")] if unwanted_compartments else []
+unwanted_statistics = [s.strip() for s in unwanted_statistics.split(",")] if unwanted_statistics else []
+```
+
+```{python}
+#| label: imports
+#| message: false
+#| warning: false
+
+import os
+import tabulate
+import pandas as pd
+import numpy as np
+import json
+```
+
+```{python}
+#| label: define-global-functions
+
+# function to print list as markdown table
+def list_2_md_table(input_list, columns=3) -> str:
+    """
+    Convert a 1D list to a markdown table with specified no. of columns.
+    """
+
+    try:
+        # len(input_list) > 0 in case pandas series
+        if len(input_list) > 0:
+            list2 = [
+                input_list[i : i + columns] for i in range(0, len(input_list), columns)
+            ]
+            return tabulate.tabulate(list2)
+        else:
+            return str(None)
+    except TypeError: # catch input_list = None
+        return str(None)
+```
+
+# Input Summary
+
+---
+
+```{python}
+#| label: print-inputs
+#| output: asis
+
+print(
+    f"""## Batch name:
+
+{batch_name}
+
+## Output folder:
+
+{os.path.abspath(output_folder)}
+
+## QuPath data to be preprocessed:
+
+{os.path.abspath(qupath_data)}
+
+## Unwanted cell types:
+
+{list_2_md_table(cell_types_to_remove)}
+
+## Changing unwanted cell types to:
+
+{change_unwanted_celltypes_to}
+
+## Additional metadata to keep:
+
+{list_2_md_table(additional_metadata_to_keep)}
+
+## Unwanted markers:
+    
+{list_2_md_table(unwanted_markers)}
+
+## Unwanted compartments:
+
+{list_2_md_table(unwanted_compartments)}
+
+## Unwanted statistics:
+
+{list_2_md_table(unwanted_compartments)}
+""")
+```
+
+# Results
+
+---
+
+```{python}
+#| label: setup
+
+os.makedirs(output_folder, exist_ok=True)
+expression_df = pd.read_csv(qupath_data)
+warnings_str = ""
+```
+
+```{python}
+#| label: remove-dots
+
+cols = expression_df.columns.copy()
+# let's start easy...
+cols = cols.str.replace("Âµm", "µm")
+cols = cols.str.replace("µm.2", "µm^2", regex=False)
+
+# these are "known" specific replacements
+specific_matches = (
+    ("MHC.I..", "MHC I ("),
+    ("MHC.II..", "MHC II ("),
+    ("MHC_I_.", "MHC_I_("),
+    ("MHC_II_.", "MHC_II_("),
+    ("Target.", "Target:"),
+    ("Beta.Tubulin", "Beta-Tubulin"),
+    ("IFN.y", "IFN-y"),
+    ("HLA.DR", "HLA-DR")
+)
+for m, r in specific_matches:
+    cols = cols.str.replace(m, r, regex=False)
+
+# once all the known specific replacements are performed, we can be a little more presumptuous...
+cols = cols.str.replace("...", "): ", regex=False)
+cols = cols.str.replace("..", ": ", regex=False)
+# replaces periods with spaces when the period isn't between two numbers
+# first protect Std.Dev.
+cols = cols.str.replace("Std.Dev.", "STD_DEV_PLACEHOLDER", regex=False)
+cols = cols.str.replace("(?<!\d)\.(?!\d)", " ", regex=True)
+# return Std.Dev.
+cols = cols.str.replace("STD_DEV_PLACEHOLDER", "Std.Dev.", regex=False)
+
+expression_df.columns = cols
+```
+
+```{python}
+#| label: generate-warnings
+
+warning_str = ""
+
+# duplicate column names
+column_names_orig = expression_df.columns
+column_names = column_names_orig.str.replace("Target:", "")
+column_names = column_names.str.replace("_", " ")
+duplicated_column_names = column_names[column_names.duplicated()]
+
+if len(duplicated_column_names) > 0:
+    warning_str += """## Duplicate Columns\n
+Column names were transformed by removing \"Target:\" and replacing underscores with spaces. \
+After this transformation, duplicate columns were merged. Merging involves averaging the values in the duplicated columns. \
+Post-transformation duplicate columns found:
+
+"""
+
+# create dataframe matching new duplicate names to original names
+duplicated_columns = {}
+for name in duplicated_column_names:
+    idx = np.where(column_names == name)
+    duplicated_columns[name] = column_names_orig[idx].to_list()
+duplicated_columns_df = pd.DataFrame(duplicated_columns).T
+
+# label the dataframe and save table
+duplicated_columns_df.index.name = "Duplicate Column Name"
+colnames = [
+    f"Original Column Name {int(i)+1}" for i in duplicated_columns_df.columns
+]
+duplicated_columns_df.columns = colnames
+warning_str += duplicated_columns_df.to_markdown(tablefmt="simple")
+```
+
+```{python}
+#| label: preprocess-celltypecolumn
+#| output: asis
+
+if expression_df["Class"].notnull().any():
+    # Check that all the cell types are there
+    # remove the Edited prefix which may have occured from the qupath script
+    expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].str.replace(
+        "Edited: ", ""
+    )
+    try:
+        expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].str.replace(
+            "Edited: ", ""
+        )
+    except KeyError:
+        pass
+
+    expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].str.replace(
+        "Immune cells: ", ""
+    )
+    try:
+        expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].str.replace(
+            "Immune cells: ", ""
+        )
+    except KeyError:
+        pass
+
+    found_cell_types = sorted(expression_df.loc[:, "Class"].unique())
+
+    if cell_types_to_remove: 
+        expression_df.loc[:, "Class"] = expression_df.loc[:, "Class"].replace(
+            cell_types_to_remove, change_unwanted_celltypes_to
+        )
+        if "Name" in expression_df.columns:
+            expression_df.loc[:, "Name"] = expression_df.loc[:, "Name"].replace(
+                cell_types_to_remove, change_unwanted_celltypes_to
+            )
+
+    cell_types = expression_df.loc[:, "Class"].unique()
+    cell_types = sorted(cell_types)
+else:
+    found_cell_types = None
+    cell_types = None
+
+print(f"""
+## Cell types found:
+
+{list_2_md_table(found_cell_types)}
+
+## Cell types after removing user-defined cells:
+
+{list_2_md_table(cell_types)}
+""")
+```
+
+```{python}
+#| label: create-encoder-decoder
+#| output: asis
+
+print("## Encoding:\n")
+
+if cell_types:
+
+    # encoder for converting your labels
+    encoder = {cell_types[i]: i for i in range(len(cell_types))}
+
+    # decoder for decoding the results of the model. Save somewhere safe.
+    decoder = {i: cell_types[i] for i in range(len(cell_types))}
+
+    with open(
+        os.path.join(output_folder, f"{batch_name}_decoder.json"), "w"
+    ) as json_file:
+        json.dump(decoder, json_file, indent=4)
+
+    print(tabulate.tabulate(
+        [[k] for k in encoder.keys()], showindex="always"
+    ))
+
+else:
+
+    encoder = None
+    decoder = None
+    print(list_2_md_table(None))
+
+filename = os.path.join(output_folder, f"{batch_name}_cell_type_labels.csv")
+labels = expression_df.loc[:, ["Name"]]
+labels = labels.replace({"Name": encoder})
+labels.to_csv(filename, index=False)
+```
+
+```{python}
+#| label: convert-pixels-to-micrometre
+
+pixel_size = 0.3906  # fixed size (for now)
+
+for dim in ["X", "Y"]:
+    # case 1: Centroid X/Y µm" column exists but so does "Centroid X/Y px". Try to merge the two
+    um_col = f"Centroid {dim} µm"
+    px_col = f"Centroid {dim} px"
+    cols = expression_df.columns
+    if um_col in cols and px_col in cols:
+        # branch 1: both um and px measurements are present.
+        # fill empty um measurements with available px measurements, then drop px measurements
+        expression_df = expression_df[um_col].fillna(
+            expression_df[px_col] * pixel_size
+        )
+        expression_df.drop([px_col], axis=1)
+    elif um_col not in cols and px_col in cols:
+        # branch 2: only px measurements are present.
+        # create new um column using px measurements. Then drop px measurements
+        expression_df.loc[:, um_col] = (
+            expression_df.loc[:, px_col] * pixel_size
+        )
+        expression_df = expression_df.drop([px_col], axis=1)
+    elif um_col in cols and px_col not in cols:
+        # branch 3: only um measurements are present.
+        # do nothing
+        pass
+    else:
+        # branch 4: neither um or px measurements are present.
+        # throw error.
+        raise RuntimeError(
+            "X/Y centroid measurements (in either pixels or µm) are missing!"
+        )
+```
+
+```{python}
+#| label: save-image-coordinate-columns
+
+image_coord_cols = [
+    "Image",
+    "Centroid X µm",
+    "Centroid Y µm",
+] + additional_metadata_to_keep
+image_coord_df = expression_df.loc[:, image_coord_cols]
+image_coord_file_name = os.path.join(
+    output_folder, "{}_images.csv".format(batch_name)
+)
+image_coord_df.to_csv(image_coord_file_name, index=False)
+```
+
+```{python}
+#| label: print-cell-type-counts
+#| output: asis
+
+print(expression_df.loc[:, "Class"].value_counts().to_markdown(tablefmt="simple"))
+```
+
+```{python}
+#| label: remove-prefixes-and-underscores
+
+expression_df.columns = expression_df.columns.str.replace("Target:", "")
+expression_df.columns = expression_df.columns.str.replace("_", " ")
+```
+
+```{python}
+#| label: remove-duplicate-columns
+
+# find duplicate column names
+duplicated_cols = expression_df.columns[expression_df.columns.duplicated()]
+# copy duplicated column data to new dataframe
+expression_df_duplicated = expression_df[duplicated_cols]
+# attempt to merge duplicated columns
+## Net effect:
+## * rows with same value are preserved
+## * rows with one empty (NaN) and another with a value takes the value
+## * rows with both empty stay empty
+## * average is taken for rows with both values present
+expression_df_duplicated = expression_df_duplicated.groupby(
+    expression_df_duplicated.columns, axis=1
+).mean()
+expression_df = expression_df.drop(columns=duplicated_cols)
+expression_df = expression_df.join(expression_df_duplicated)
+```
+
+```{python}
+#| label: collect-markers
+#| output: asis
+
+# markers to include
+markers = [
+    col.replace(": Cell: Mean", "")
+    for col in expression_df.columns
+    if "Cell: Mean" in col
+]
+
+print(f"""
+## Markers found:
+
+{list_2_md_table(markers)}
+""")
+```
+
+```{python}
+#| label: drop-markers
+#| output: asis
+
+markers_ = [s + ": " for s in markers if s not in unwanted_markers]
+measurement_columns = [
+    col for col in expression_df.columns if any(map(col.__contains__, markers_))
+]
+expression_df = expression_df.loc[:, measurement_columns]
+
+# markers to include
+markers = [
+    col.replace(": Cell: Mean", "")
+    for col in expression_df.columns
+    if "Cell: Mean" in col
+]
+
+print(f"""
+## Markers after removing user-defined markers:
+
+{list_2_md_table(markers)}
+""")
+```
+
+```{python}
+#| label: replace-cytoplasm-with-membrane
+
+for col in expression_df.columns:
+    null_arr = expression_df.loc[:, col].isnull()
+    if null_arr.values.any():
+        if "Cytoplasm" in col:
+            new_col = col.replace("Cytoplasm", "Membrane", 1)
+            expression_df.loc[null_arr.values, col] = expression_df.loc[
+                null_arr.values, new_col
+            ]
+```
+
+```{python}
+#| label: use-cell-measurement
+
+for col in expression_df.columns:
+    null_arr = expression_df.loc[:, col].isnull()
+    if null_arr.values.any():
+        if "Nucleus" in col:
+            new_col = col.replace("Nucleus", "Cell", 1)
+            expression_df.loc[null_arr.values, col] = expression_df.loc[
+                null_arr.values, new_col
+            ]
+```
+
+```{python}
+#| label: remove-unwanted-compartments
+
+compartments_cols_to_remove = [
+    col
+    for col in expression_df.columns
+    if any(map(col.__contains__, unwanted_compartments))
+]
+expression_df = expression_df.drop(columns=compartments_cols_to_remove)
+```
+
+```{python}
+#| label: remove-statistics
+
+statistics_cols_to_remove = [
+    col
+    for col in expression_df.columns
+    if any(map(col.__contains__, unwanted_statistics))
+]
+expression_df = expression_df.drop(columns=statistics_cols_to_remove)
+```
+
+```{python}
+#| label: print-null-columns
+#| output: asis
+
+print(f"""
+## Columns with NA values:
+
+{list_2_md_table(expression_df.columns[expression_df.isna().any()].values, 2)}
+""")
+```
+
+**If there are columns with NA values:**
+
+This will be an issue with the measurement names across different images, and cohorts. 
+If the problem is due to different measurement names across different images, this can be fixed by changing the names for the columns
+in the images where this is a problem. 
+
+Some things to check:
+
+* Do all of my images have the same channel names on QuPath?
+* Did I change the channel names before or after the segmentation? 
+    * If after, the measurements would have been created using the previous channel names.
+    * You can either change the names of the columns (best option) or if the channel names were
+    completely different and you don't know which corresponds to which, you should re run the segmentation
+    using the new channel names. 
+
+```{python}
+#| label: print-warnings
+#| output: asis
+
+print(f"""
+# Warnings:
+
+{warning_str}
+""")
+```
+
