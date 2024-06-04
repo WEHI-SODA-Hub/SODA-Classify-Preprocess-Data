@@ -278,33 +278,50 @@ print(f"""
 
 print("## Encoding:\n")
 
-if cell_types:
+if target == "main-cell-type":
+    if cell_types:
 
-    # encoder for converting your labels
-    encoder = {cell_types[i]: i for i in range(len(cell_types))}
+        # encoder for converting your labels
+        encoder = {cell_types[i]: i for i in range(len(cell_types))}
 
-    # decoder for decoding the results of the model. Save somewhere safe.
-    decoder = {i: cell_types[i] for i in range(len(cell_types))}
+        # decoder for decoding the results of the model. Save somewhere safe.
+        decoder = {i: cell_types[i] for i in range(len(cell_types))}
 
-    with open(
-        os.path.join(output_folder, f"{batch_name}_decoder.json"), "w"
-    ) as json_file:
+        with open(
+            os.path.join(output_folder, f"{batch_name}_decoder.json"), "w"
+        ) as json_file:
+            json.dump(decoder, json_file, indent=4)
+
+        print(tabulate.tabulate(
+            [[k] for k in encoder.keys()], showindex="always"
+        ))
+
+    else:
+
+        encoder = None
+        decoder = None
+        print(list_2_md_table(None))
+
+    filename = os.path.join(output_folder, f"{batch_name}_cell_type_labels.csv")
+    labels = expression_df.loc[:, ["Name"]]
+    labels = labels.replace({"Name": encoder})
+    labels.to_csv(filename, index=False)
+else: # target: fm-*
+    binarized = expression_df["Classification"].copy()
+
+    labels = sorted(binarized.unique())
+    decoder = {1: labels[0], 0: labels[1]}
+    encoder = {labels[0]: 1, labels[1]: 0}
+
+    filename = os.path.join(output_folder, f"{batch_name}_decoder.json")
+    with open(filename, "w") as json_file:
         json.dump(decoder, json_file, indent=4)
 
-    print(tabulate.tabulate(
-        [[k] for k in encoder.keys()], showindex="always"
-    ))
+    # replace "+" with 1, otherwise, 0.
+    binarized = binarized.map(lambda x: int("+" in x))
 
-else:
-
-    encoder = None
-    decoder = None
-    print(list_2_md_table(None))
-
-filename = os.path.join(output_folder, f"{batch_name}_cell_type_labels.csv")
-labels = expression_df.loc[:, ["Name"]]
-labels = labels.replace({"Name": encoder})
-labels.to_csv(filename, index=False)
+    filename = os.path.join(output_folder, f"{batch_name}_binarized_labels.csv")
+    binarized.to_csv(filename, index=False)
 ```
 
 ```{python}
@@ -363,6 +380,15 @@ image_coord_df.to_csv(image_coord_file_name, index=False)
 #| output: asis
 
 print(expression_df.loc[:, "Class"].value_counts().to_markdown(tablefmt="simple"))
+```
+
+```{python}
+#| label: one-hot-encode-celltypes
+
+if target == "fm-with-celltype": 
+        expression_df = one_hot_encode_cell_types(expression_df, cell_types)
+elif target == "fm-markers-only":
+    expression_df.drop("Class", axis=1, inplace=True)
 ```
 
 ```{python}
@@ -519,3 +545,11 @@ print(f"""
 """)
 ```
 
+```{python}
+#| label: save-preprocessed-data
+
+output_expression_df_path = os.path.join(
+    output_folder, "{}_preprocessed_input_data.csv".format(batch_name)
+)
+expression_df.to_csv(output_expression_df_path, index=False)
+```
