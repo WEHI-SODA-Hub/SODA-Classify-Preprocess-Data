@@ -5,21 +5,19 @@ from: mambaorg/micromamba:1.5.8-bookworm-slim
   environment.yml /opt
 
 %post
-  micromamba install -y -q -n base -f /opt/environment.yml
-  micromamba remove -y -q -n base --prune quarto # quarto recipe has problems in this container https://github.com/conda-forge/quarto-feedstock/issues/30
+  micromamba install -y -q -n base --file /opt/environment.yml
   micromamba clean -ay
-  apt-get update
-  apt-get install procps wget -y
-  wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.554/quarto-1.4.554-linux-amd64.deb -O /opt/quarto.deb
-  apt-get install /opt/quarto.deb -y
-  rm /opt/quarto.deb
+  /opt/conda/bin/python -m ipykernel install --sys-prefix
 
 %environment
-  PATH=/opt/conda/bin:$PATH
+  # use posix shell hooks
+  eval "$(micromamba shell hook -s posix)"
+  micromamba activate base
+  export LD_LIBRARY_PATH=/opt/conda/lib:"$LD_LIBRARY_PATH"
 
 %labels
   Author yang.e@wehi.edu.au
-  Version v0.1
+  Version v0.2
   XGBOOST_VERSION 1.6.2
 
 %help
