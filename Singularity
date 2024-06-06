@@ -5,9 +5,11 @@ from: mambaorg/micromamba:1.5.8-bookworm-slim
   envs/environment.yml /opt
 
 %post
+  # install packages
   micromamba install -y -q -n base -f /opt/environment.yml
   micromamba remove -y -q -n base --prune quarto # quarto recipe has problems in this container https://github.com/conda-forge/quarto-feedstock/issues/30
   micromamba clean -ay
+  # install quarto from official deb
   apt-get update
   apt-get install procps wget -y
   wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.554/quarto-1.4.554-linux-amd64.deb -O /opt/quarto.deb
@@ -15,6 +17,7 @@ from: mambaorg/micromamba:1.5.8-bookworm-slim
   rm /opt/quarto.deb
 
 %environment
+  # make sure bins are acessible
   PATH=/opt/conda/bin:$PATH
 
 %labels
