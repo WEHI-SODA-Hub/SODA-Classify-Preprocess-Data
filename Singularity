@@ -2,7 +2,7 @@ bootstrap: docker
 from: mambaorg/micromamba:1.5.8-bookworm-slim
 
 %files
-  environment.yml /opt
+  envs/environment.yml /opt
 
 %post
   micromamba install -y -q -n base -f /opt/environment.yml
