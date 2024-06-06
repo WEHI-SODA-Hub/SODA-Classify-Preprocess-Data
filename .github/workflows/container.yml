@@ -83,5 +83,5 @@ jobs:
         run: |         
             if [[ "${keepgoing}" == "true" ]]; then
                 echo ${{ secrets.GITHUB_TOKEN }} | singularity remote login -u ${{ secrets.GHCR_USERNAME }} --password-stdin oras://ghcr.io
-                singularity push container.sif oras://${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:${tag}
+                singularity push container.sif oras://${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}:latest
             fi

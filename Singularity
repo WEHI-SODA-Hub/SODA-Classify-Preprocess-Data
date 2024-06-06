@@ -9,6 +9,7 @@ from: mambaorg/micromamba:1.5.8-bookworm-slim
   micromamba install -y -q -n base -f /opt/environment.yml
   micromamba remove -y -q -n base --prune quarto # quarto recipe has problems in this container https://github.com/conda-forge/quarto-feedstock/issues/30
   micromamba clean -ay
+  
   # install quarto from official deb
   apt-get update
   apt-get install procps wget -y
