@@ -8,7 +8,7 @@ process PREPROCESS {
 	publishDir "${params.output_folder}", mode: 'copy'
 	conda "${projectDir}/envs/environment.yml"
 	memory { MemoryUnit.of(params.memory) * task.attempt }
-        errorStrategy { task.errorStatus in 137 ? 'retry' : 'terminate' }
+        errorStrategy { task.errorStatus.equals(137) ? 'retry' : 'terminate' }
 	beforeScript "${params.before_script}"
 	container "oras://ghcr.io/wehi-researchcomputing/mibi:0.1"
 
