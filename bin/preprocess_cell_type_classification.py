@@ -169,7 +169,10 @@ def setup(output_folder, expression_mat_path):
     Create output folder and read in the input CSV file
     """
     os.makedirs(output_folder, exist_ok=True)
-    expression_df = pd.read_csv(expression_mat_path)
+    try:
+        expression_df = pd.read_csv(expression_mat_path)
+    except UnicodeDecodeError:
+        expression_df = pd.read_csv(expression_mat_path, encoding="cp1252")
     return expression_df
 
 
