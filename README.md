@@ -157,7 +157,7 @@ format. This can be rendered by quarto, if so desired (but not strictly necessar
 ## Credits
 
 The core functionality of the MIBI pipeline was developed by Kenta Yotoke (@yokotenka) under the supervision of Claire Marceaux 
-(@ClaireMarceaux). The pipeline was adapted to Nextflow by Edward Yang (@edoyango).
+(@ClaireMarceaux). The pipeline was adapted to Nextflow by Edward Yang (@edoyango) and maintained by Michael Mckay (@mikemcka) and Michael Milton (@multimeric).
 
 ## Citation
 
