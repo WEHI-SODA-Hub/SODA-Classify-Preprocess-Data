@@ -166,13 +166,21 @@ def list_2_md_table(input_list, columns=3) -> str:
 
 def setup(output_folder, expression_mat_path):
     """
-    Create output folder and read in the input CSV file
+    Create output folder and read in the input CSV or Parquet file
     """
     os.makedirs(output_folder, exist_ok=True)
-    try:
-        expression_df = pd.read_csv(expression_mat_path)
-    except UnicodeDecodeError:
-        expression_df = pd.read_csv(expression_mat_path, encoding="cp1252")
+    
+    # Determine file format from extension
+    if expression_mat_path.endswith('.parquet'):
+        expression_df = pd.read_parquet(expression_mat_path)
+    elif expression_mat_path.endswith('.csv'):
+        try:
+            expression_df = pd.read_csv(expression_mat_path)
+        except UnicodeDecodeError:
+            expression_df = pd.read_csv(expression_mat_path, encoding="cp1252")
+    else:
+        raise ValueError(f"Unsupported file format. Expected .csv or .parquet, got: {expression_mat_path}")
+    
     return expression_df
 
 
@@ -526,14 +534,20 @@ def remove_statistics(expression_df, unwanted_stats):
     return expression_df
 
 
-def save_preprocessed_data(expression_df, output_folder, batch_name):
+def save_preprocessed_data(expression_df, output_folder, batch_name, output_format='csv'):
     """
-    Save the input preprocessed data
+    Save the input preprocessed data in CSV or Parquet format
     """
-    output_expression_df_path = os.path.join(
-        output_folder, "{}_preprocessed_input_data.csv".format(batch_name)
-    )
-    expression_df.to_csv(output_expression_df_path, index=False)
+    if output_format == 'parquet':
+        output_expression_df_path = os.path.join(
+            output_folder, "{}_preprocessed_input_data.parquet".format(batch_name)
+        )
+        expression_df.to_parquet(output_expression_df_path, index=False)
+    else:  # csv
+        output_expression_df_path = os.path.join(
+            output_folder, "{}_preprocessed_input_data.csv".format(batch_name)
+        )
+        expression_df.to_csv(output_expression_df_path, index=False)
 
 
 def preprocess_training_data(
@@ -546,6 +560,7 @@ def preprocess_training_data(
     unwanted_markers,
     unwanted_compartments,
     unwanted_statistics,
+    output_format='csv',
 ) -> mibi_reporter:
     output_mibi_reporter = mibi_reporter()
     output_mibi_reporter.batch_name = batch_name
@@ -630,6 +645,6 @@ def preprocess_training_data(
         expression_df.columns[expression_df.isna().any()].values, 2
     )
 
-    save_preprocessed_data(expression_df, output_folder, batch_name)
+    save_preprocessed_data(expression_df, output_folder, batch_name, output_format)
 
     return output_mibi_reporter

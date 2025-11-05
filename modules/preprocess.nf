@@ -27,7 +27,7 @@ process PREPROCESS {
 	path ("${batch_name}_report.html")
 	path ("${batch_name}_*_labels.csv")
 	path ("${batch_name}_images.csv")
-	path ("${batch_name}_preprocessed_input_data.csv")
+	path ("${batch_name}_preprocessed_input_data.{csv,parquet}")
 	path ("${batch_name}_decoder.json", optional: true)
 	path ("${batch_name}_binarized_labels.csv", optional: true) // only presen if target=functional-marker
 	
@@ -38,13 +38,14 @@ process PREPROCESS {
 	flag_m = unwanted_markers == "" ? "" : "-m '${unwanted_markers}'"
 	flag_c = unwanted_compartments == "" ? "" : "-c '${unwanted_compartments}'"
 	flag_s = unwanted_statistics == "" ? "" : "-s '${unwanted_statistics}'"
+	flag_f = params.output_format == "" ? "" : "-f '${params.output_format}'"
 	'''
 	REPORT_QMD=!{batch_name}_report.qmd
 	mibi-preprocess.py !{params.target} \\
 		-d "$(realpath !{qupath_data})" \\
 		-o "$(realpath .)" \\
 		-n "!{batch_name}" \\
-		!{flag_a} !{flag_l} !{flag_t} !{flag_m} !{flag_m} !{flag_c} !{flag_s} \\
+		!{flag_a} !{flag_l} !{flag_t} !{flag_m} !{flag_m} !{flag_c} !{flag_s} !{flag_f} \\
 		> "$REPORT_QMD"
 
 	# add output locations (script has no knowledge of publishDir)
@@ -72,7 +73,11 @@ process PREPROCESS {
 	echo "**Preprocessed data:**" >> "$REPORT_QMD"
 	echo "" >> "$REPORT_QMD"
 	echo "\\`\\`\\`" >> "$REPORT_QMD"
-	echo "!{params.output_folder}/!{batch_name}_preprocessed_input_data.csv" >> "$REPORT_QMD"
+	if [ "!{params.output_format}" == "parquet" ]; then
+		echo "!{params.output_folder}/!{batch_name}_preprocessed_input_data.parquet" >> "$REPORT_QMD"
+	else
+		echo "!{params.output_folder}/!{batch_name}_preprocessed_input_data.csv" >> "$REPORT_QMD"
+	fi
 	echo "\\`\\`\\`" >> "$REPORT_QMD"
 	echo "" >> "$REPORT_QMD"
 	if [[ "!{params.target}" == "fm"* ]]

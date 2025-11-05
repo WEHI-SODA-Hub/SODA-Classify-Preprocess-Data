@@ -61,6 +61,13 @@ The data will be exported for XGBoost training or any supervised machine learnin
         help="A comma-delimited list of statistics you want to remove from the phenotyping.",
     )
     parser.add_argument(
+        "-f",
+        "--output-format",
+        default="csv",
+        choices=["csv", "parquet"],
+        help="Output format for preprocessed data. Default: csv",
+    )
+    parser.add_argument(
         "target",
         help='Whether to preprocess the data for the "cell type" classification pipeline, or the "functional marker" classification pipeline',
         choices=["main-cell-type", "fm-markers-only", "fm-with-celltype"],
@@ -73,6 +80,7 @@ The data will be exported for XGBoost training or any supervised machine learnin
     output_folder = args.output_folder
     expression_mat_path = args.qupath_data
     change_to = args.change_unwanted_celltypes_to
+    output_format = args.output_format
 
     # might be None.
     try:
@@ -119,7 +127,8 @@ The data will be exported for XGBoost training or any supervised machine learnin
             additional_meta_data_to_keep,
             unwanted_markers,
             unwanted_compartments,
-            unwanted_statistics
+            unwanted_statistics,
+            output_format
         )
     else: # fm
         from preprocess_functional_marker_classification import preprocess_training_data
@@ -138,6 +147,7 @@ The data will be exported for XGBoost training or any supervised machine learnin
             unwanted_compartments,
             unwanted_statistics,
             with_celltype,
+            output_format
         )
 
     output_mibi_reporter.print_report()

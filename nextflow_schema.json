@@ -56,6 +56,15 @@
                     "default": " Nucleus: Mean, Nucleus: Median, Nucleus: Min, Nucleus: Max, Nucleus: Std.Dev, Nucleus: Percentile: 91.0, Nucleus: Percentile: 92.0, Nucleus: Percentile: 93.0, Nucleus: Percentile: 94.0, Nucleus: Percentile: 96.0,Nucleus: Percentile: 97.0, Nucleus: Percentile: 98.0, Nucleus: Percentile: 99.0, Nucleus: Percentile: 99.5, Nucleus: Percentile: 99.9, Nucleus: Percentile: 95.0, Nucleus: Percentile: 90.0, Nucleus: Percentile: 80.0, Nucleus: Percentile: 70.0",
                     "description": "A comma-delimited list of statistics you want to remove from the phenotyping."
                 },
+                "output_format": {
+                    "type": "string",
+                    "default": "csv",
+                    "description": "Output format for preprocessed data. Options: csv, parquet. Default: csv",
+                    "enum": [
+                        "csv",
+                        "parquet"
+                    ]
+                },
                 "output_folder": {
                     "type": "string",
                     "description": "Where preprocessed files will be stored. The folder will be created if it doesn't already exist. E.g., /vast/scratch/users/yang.e/mibi-workspace",

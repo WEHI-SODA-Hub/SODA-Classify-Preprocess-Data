@@ -170,10 +170,18 @@ Some things to check:
 
 def setup(output_folder, expression_mat_path):
     """
-    Create output folder and read in the input CSV file
+    Create output folder and read in the input CSV or Parquet file
     """
     os.makedirs(output_folder, exist_ok=True)
-    expression_df = pd.read_csv(expression_mat_path, index_col=0)
+    
+    # Determine file format from extension
+    if expression_mat_path.endswith('.parquet'):
+        expression_df = pd.read_parquet(expression_mat_path)
+    elif expression_mat_path.endswith('.csv'):
+        expression_df = pd.read_csv(expression_mat_path, index_col=0)
+    else:
+        raise ValueError(f"Unsupported file format. Expected .csv or .parquet, got: {expression_mat_path}")
+    
     return expression_df
 
 
@@ -265,7 +273,8 @@ def preprocess_training_data(
     unwanted_markers,
     unwanted_compartments,
     unwanted_statistics,
-    with_celltype = True
+    with_celltype = True,
+    output_format='csv'
 ) -> mibi_reporter:
     output_mibi_reporter = mibi_reporter()
     output_mibi_reporter.batch_name = batch_name
@@ -348,6 +357,6 @@ def preprocess_training_data(
         expression_df.columns[expression_df.isna().any()].values, 2
     )
 
-    save_preprocessed_data(expression_df, output_folder, batch_name)
+    save_preprocessed_data(expression_df, output_folder, batch_name, output_format)
 
     return output_mibi_reporter
