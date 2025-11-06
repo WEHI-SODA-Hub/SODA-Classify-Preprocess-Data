@@ -1,7 +1,7 @@
-# MIBI Preprocess Data Pipeline
+# SODA-Classify-Preprocess-Data pipeline
 
-This Nextflow pipeline is a sub-pipeline in the MIBI suite. It is used to preprocess output QuPath
-data in preparation for XGBoost model training or application. This README contains WEHI-specific
+This Nextflow pipeline is a sub-pipeline in the SODA-Classify suite for Spatial Proteomics. It is used to preprocess output QuPath
+data or cell marker measurements in tabular format in preparation for XGBoost model training or application. This README contains WEHI-specific
 as well as general usage instructions.
 
 ## Introduction
@@ -24,6 +24,10 @@ you can use to decide which cell types, markers, compartments, and/or statistics
 next run.
 
 ## Usage
+
+To preprocess data, The format of the input data must be the same as the format used by data exported from Qupath. 
+The pipeline will look for columns 'Image', 'Centroid X µm', 'Centroid Y µm', 'Name', 'Class', 'Classification' marker measurements and unamed index column to function.
+'Name', 'Class', 'Classification' contain cell detection classes and can be duplicated.
 
 Parameters:
 
