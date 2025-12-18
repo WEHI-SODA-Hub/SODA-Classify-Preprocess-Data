@@ -1,6 +1,6 @@
-# SODA-Classify-Preprocess-Data pipeline
+# Spatial Proteomics Celltype pipeline
 
-This Nextflow pipeline is a sub-pipeline in the SODA-Classify suite for Spatial Proteomics. It is used to preprocess output QuPath
+This Nextflow pipeline is a sub-pipeline in the Spatial Proteomics cell Celltype suite. It is used to preprocess output QuPath
 data or cell marker measurements in tabular format in preparation for XGBoost model training or application. This README contains WEHI-specific
 as well as general usage instructions.
 
@@ -177,7 +177,7 @@ format. This can be rendered by quarto, if so desired (but not strictly necessar
 
 ## Credits
 
-The core functionality of the MIBI pipeline was developed by Kenta Yotoke (@yokotenka) under the supervision of Claire Marceaux 
+The core functionality of the Celltype pipeline was developed by Kenta Yotoke (@yokotenka) under the supervision of Claire Marceaux 
 (@ClaireMarceaux). The pipeline was adapted to Nextflow by Edward Yang (@edoyango) and maintained by Michael Mckay (@mikemcka) and Michael Milton (@multimeric).
 
 ## Citation
