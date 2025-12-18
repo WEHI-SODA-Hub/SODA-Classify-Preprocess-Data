@@ -1,6 +1,6 @@
 # Spatial Proteomics Celltype pipeline
 
-This Nextflow pipeline is a sub-pipeline in the Spatial Proteomics cell Celltype suite. It is used to preprocess output QuPath
+This Nextflow pipeline is a sub-pipeline in the Spatial Proteomics Celltype suite. It is used to preprocess output QuPath
 data or cell marker measurements in tabular format in preparation for XGBoost model training or application. This README contains WEHI-specific
 as well as general usage instructions.
 
